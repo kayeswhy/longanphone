@@ -112,14 +112,9 @@
         })();
     </script>
     
-    <!-- Conditional Cordova loading -->
+    <!-- Browser-only mode - no cordova.js needed -->
     <script>
-        // Only load cordova.js if we're actually in Cordova environment
-        if (window.cordova || (typeof navigator !== 'undefined' && navigator.userAgent.indexOf('Cordova') > -1)) {
-            document.write('<script src="cordova.js"><\/script>');
-        } else {
-            console.log('🌐 Browser mode - skipping cordova.js');
-        }
+        console.log('🌐 Browser mode - skipping cordova.js');
     </script>
     <script src="js/export.js"></script>
     <script src="https://sdk.scdn.co/spotify-player.js"></script>
@@ -21858,7 +21853,7 @@ ${bulletinsContext}
 
                 document.getElementById('custom-modal-cancel').addEventListener('click', hideCustomModal);
                 document.getElementById('custom-modal-overlay').addEventListener('click', (e) => { if (e.target === modalOverlay) hideCustomModal(); });
-                document.getElementById('export-data-btn').addEventListener('click', window.exportWithPermissionCheck);
+                // Export button event listener is handled in export.js
                 document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import-data-input').click());
                 document.getElementById('import-data-input').addEventListener('change', e => importBackup(e.target.files[0]));
 

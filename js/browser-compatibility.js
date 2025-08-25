@@ -110,6 +110,13 @@
                                         console.log('🌐 Browser: Getting file object for', fileName);
 
                                         try {
+                                            // For font files, just return null to skip font loading
+                                            if (fileName.includes('font') || filePath.includes('font')) {
+                                                console.log('🌐 Browser: Skipping font file access');
+                                                if (errorCallback) errorCallback(new Error('Font file access not supported in browser'));
+                                                return;
+                                            }
+
                                             // Get stored file data
                                             const storedData = BrowserFileSystem.storage.get(filePath);
                                             if (storedData) {
@@ -290,8 +297,10 @@
         // Add global error handler to prevent cascading failures
         window.addEventListener('error', function(event) {
             console.error('🌐 Browser: Global error caught:', event.error);
-            // Don't let errors break the entire app
-            event.preventDefault();
+            // Don't let errors break the entire app - but don't prevent default for null errors
+            if (event.error !== null) {
+                event.preventDefault();
+            }
             return true;
         });
 
@@ -301,26 +310,31 @@
             event.preventDefault();
         });
 
-        // Override export function for browser compatibility
-        const originalExportFunction = window.exportWithPermissionCheck;
-        if (originalExportFunction) {
-            window.exportWithPermissionCheck = function () {
-                console.log('🌐 Browser: Using browser-compatible export');
-
-                // Call original function but ensure browser fallback is used
-                const originalCordova = window.cordova;
-
-                // Temporarily disable cordova.file to force browser fallback
-                window.cordova.file = null;
-
-                try {
-                    originalExportFunction();
-                } finally {
-                    // Restore cordova.file
-                    window.cordova.file = originalCordova.file;
-                }
-            };
-        }
+        // Simple browser export function
+        window.browserExportData = function(jsonData, filename) {
+            console.log('🌐 Browser: Exporting data directly');
+            
+            try {
+                const blob = new Blob([jsonData], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.style.display = 'none';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                
+                console.log('🌐 Browser: Export completed successfully');
+                return true;
+            } catch (error) {
+                console.error('🌐 Browser: Export failed', error);
+                return false;
+            }
+        };
 
         // Fix for QZone navigation - ensure hidden nav items can be clicked
         document.addEventListener('DOMContentLoaded', function() {
@@ -440,30 +454,8 @@
             return originalWindowOpen.call(this, url, target, features);
         };
         
-        // Also intercept location.href assignments (alternative method Spotify might use)
-        let originalLocationHref = window.location.href;
-        Object.defineProperty(window.location, 'href', {
-            get: function() {
-                return originalLocationHref;
-            },
-            set: function(url) {
-                console.log('🌐 Browser: location.href set to:', url);
-                
-                if (url && url.includes('accounts.spotify.com/authorize') && url.includes('lycheephone://')) {
-                    console.log('🌐 Browser: Fixing Spotify redirect in location.href');
-                    const browserRedirectUri = window.browserSpotifyAuth.getRedirectUri();
-                    const fixedUrl = url.replace(
-                        /redirect_uri=[^&]+/,
-                        `redirect_uri=${encodeURIComponent(browserRedirectUri)}`
-                    );
-                    originalLocationHref = fixedUrl;
-                    window.location.replace(fixedUrl);
-                } else {
-                    originalLocationHref = url;
-                    window.location.replace(url);
-                }
-            }
-        });
+        // Skip location.href interception to avoid property redefinition errors
+        console.log('🌐 Browser: Skipping location.href interception to avoid errors');
         
         // Check for Spotify callback on page load
         document.addEventListener('DOMContentLoaded', function() {
