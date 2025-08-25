@@ -4,9 +4,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>EPhone</title>
+    <title>EPhone - Browser Version</title>
     <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
-    <script src="cordova.js"></script>
+    
+    <!-- Browser Compatibility Layer - Load BEFORE Cordova scripts -->
+    <script src="js/browser-compatibility.js"></script>
+    
+    <!-- Conditional Cordova loading -->
+    <script>
+        // Only load cordova.js if we're actually in Cordova environment
+        if (window.cordova || (typeof navigator !== 'undefined' && navigator.userAgent.indexOf('Cordova') > -1)) {
+            document.write('<script src="cordova.js"><\/script>');
+        } else {
+            console.log('🌐 Browser mode - skipping cordova.js');
+        }
+    </script>
     <script src="js/cordova-init.js"></script>
     <script src="js/export.js"></script>
     <script src="https://sdk.scdn.co/spotify-player.js"></script>
@@ -7229,6 +7241,36 @@
 
         #export-progress-modal-overlay.visible #export-progress-modal {
             transform: scale(1);
+        }
+
+        /* Browser-specific styles */
+
+        /* Ensure proper scrolling in browser */
+        body {
+            overflow: auto !important;
+        }
+
+        #phone-screen {
+            overflow: auto !important;
+        }
+
+        /* Browser file input styling */
+        .browser-file-input {
+            margin: 10px 0;
+            padding: 8px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .browser-file-input:hover {
+            border-color: var(--accent-color);
+        }
+
+        .browser-file-input input[type="file"] {
+            display: none;
         }
     </style>
 </head>
