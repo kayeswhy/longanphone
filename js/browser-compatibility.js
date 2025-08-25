@@ -285,30 +285,6 @@
         // Browser-specific initialization
         document.addEventListener('DOMContentLoaded', function () {
             console.log('🌐 Browser: DOM loaded, initializing browser-specific features');
-
-            // Add browser indicator to UI (optional)
-            const indicator = document.createElement('div');
-            indicator.style.cssText = `
-                position: fixed;
-                top: 5px;
-                right: 5px;
-                background: rgba(0, 123, 255, 0.8);
-                color: white;
-                padding: 2px 6px;
-                border-radius: 3px;
-                font-size: 10px;
-                z-index: 10000;
-                pointer-events: none;
-            `;
-            indicator.textContent = '🌐 Browser Mode';
-            document.body.appendChild(indicator);
-
-            // Hide indicator after 3 seconds
-            setTimeout(() => {
-                if (indicator.parentNode) {
-                    indicator.parentNode.removeChild(indicator);
-                }
-            }, 3000);
         });
 
         // Add global error handler to prevent cascading failures
