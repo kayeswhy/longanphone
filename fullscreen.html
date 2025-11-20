@@ -6725,16 +6725,16 @@
         #chat-header-title-wrapper {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            /* 水平居中 */
+            align-items: flex-start;
+            /* 左对齐 */
             gap: 2px;
             /* 标题和状态之间的微小间距 */
 
-            /* 为了让它能在flex布局中正确居中 */
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
+            /* 移动到左侧，紧邻返回按钮 */
+            position: static;
             max-width: 60%;
+            flex: 1;
+            /* 让标题区域占据剩余空间 */
         }
 
         /* 2. 主标题的样式微调 */
@@ -9392,6 +9392,44 @@
         </div>
     </div>
     <!-- ▲▲▲ Date Creation Modal End ▲▲▲ -->
+
+    <!-- ▼▼▼ QZone Avatar Modal ▼▼▼ -->
+    <div id="qzone-avatar-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><span>编辑头像</span></div>
+            <div class="modal-body">
+                <div class="form-group"><label>头像</label>
+                    <div class="avatar-upload"><img id="qzone-avatar-preview"><button
+                            onclick="document.getElementById('qzone-avatar-file-input').click()">上传头像</button><input
+                            type="file" id="qzone-avatar-file-input" accept="image/*"></div>
+                </div>
+                <div class="form-group">
+                    <label>启用头像边框</label>
+                    <label class="switch">
+                        <input type="checkbox" id="qzone-border-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="form-group" id="qzone-border-group"><label>头像边框</label>
+                    <div class="avatar-upload">
+                        <div class="border-preview-container">
+                            <img id="qzone-border-preview" class="border-preview" style="display: none;">
+                            <span id="qzone-no-border-text" class="no-border-text">无边框</span>
+                        </div>
+                        <button onclick="document.getElementById('qzone-border-input').click()">上传边框</button>
+                        <button id="qzone-remove-border-btn" onclick="removeQzoneBorder()"
+                            style="display: none;">移除边框</button>
+                        <input type="file" id="qzone-border-input" accept="image/png,image/gif">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel" onclick="document.getElementById('qzone-avatar-modal').classList.remove('visible')">取消</button>
+                <button class="save" id="save-qzone-avatar-btn">保存</button>
+            </div>
+        </div>
+    </div>
+    <!-- ▲▲▲ QZone Avatar Modal End ▲▲▲ -->
 
     <!-- ▼▼▼ Sticker Pack Edit Modal ▼▼▼ -->
     <div id="sticker-pack-edit-modal" class="modal">
@@ -16323,6 +16361,16 @@ ${worldBookContent}
 
             function closePersonaEditor() { personaEditorModal.classList.remove('visible'); editingPersonaPresetId = null; }
 
+            function removeQzoneBorder() {
+                document.getElementById('qzone-border-preview').style.display = 'none';
+                document.getElementById('qzone-border-preview').src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                document.getElementById('qzone-no-border-text').style.display = 'block';
+                document.getElementById('qzone-remove-border-btn').style.display = 'none';
+            }
+
+            // Make function globally accessible
+            window.removeQzoneBorder = removeQzoneBorder;
+
             async function savePersonaPreset() { const avatar = document.getElementById('preset-avatar-preview').src; const persona = document.getElementById('preset-persona-input').value.trim(); if (avatar === defaultAvatar && !persona) { alert("头像和人设不能都为空哦！"); return; } if (editingPersonaPresetId) { const preset = state.personaPresets.find(p => p.id === editingPersonaPresetId); if (preset) { preset.avatar = avatar; preset.persona = persona; await db.personaPresets.put(preset); } } else { const newPreset = { id: 'preset_' + Date.now(), avatar: avatar, persona: persona }; await db.personaPresets.add(newPreset); state.personaPresets.push(newPreset); } renderPersonaLibrary(); closePersonaEditor(); }
 
             // Memory action functions (copying persona pattern)
@@ -22534,6 +22582,63 @@ ${bulletinsContext}
                 setupFileUpload('my-avatar-input', (base64) => document.getElementById('my-avatar-preview').src = base64);
                 setupFileUpload('group-avatar-input', (base64) => document.getElementById('group-avatar-preview').src = base64);
                 setupFileUpload('member-avatar-input', (base64) => document.getElementById('member-avatar-preview').src = base64);
+
+                // QZone avatar modal event handlers
+                document.getElementById('save-qzone-avatar-btn').addEventListener('click', async () => {
+                    // Save avatar
+                    state.qzoneSettings.avatar = document.getElementById('qzone-avatar-preview').src;
+
+                    // Save toggle state
+                    const toggle = document.getElementById('qzone-border-toggle');
+                    state.qzoneSettings.avatarBordersEnabled = toggle.checked;
+
+                    // Save border (only if toggle is enabled)
+                    if (toggle.checked) {
+                        const borderSrc = document.getElementById('qzone-border-preview').src;
+                        state.qzoneSettings.avatarFrame = (borderSrc && borderSrc !== 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7') ? borderSrc : null;
+                    }
+
+                    // Save to database
+                    await saveQzoneSettings();
+                    renderQzoneScreen();
+                    await renderQzonePosts(); // Re-render posts with new border settings
+
+                    // Close modal
+                    document.getElementById('qzone-avatar-modal').classList.remove('visible');
+                });
+
+                // QZone avatar file upload handler
+                document.getElementById('qzone-avatar-file-input').addEventListener('change', async (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const dataUrl = await processImageUpload(file);
+                        document.getElementById('qzone-avatar-preview').src = dataUrl;
+                    }
+                    event.target.value = null;
+                });
+
+                // QZone border toggle handler
+                document.getElementById('qzone-border-toggle').addEventListener('change', (e) => {
+                    const borderGroup = document.getElementById('qzone-border-group');
+                    borderGroup.style.display = e.target.checked ? 'block' : 'none';
+                });
+
+                // QZone border upload handler
+                document.getElementById('qzone-border-input').addEventListener('change', async (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const dataUrl = await new Promise((res, rej) => {
+                            const reader = new FileReader();
+                            reader.onload = () => res(reader.result);
+                            reader.readAsDataURL(file);
+                        });
+                        document.getElementById('qzone-border-preview').src = dataUrl;
+                        document.getElementById('qzone-border-preview').style.display = 'block';
+                        document.getElementById('qzone-no-border-text').style.display = 'none';
+                        document.getElementById('qzone-remove-border-btn').style.display = 'inline-block';
+                    }
+                    event.target.value = null;
+                });
                 setupFileUpload('bg-input', (base64) => { if (state.activeChatId) { state.chats[state.activeChatId].settings.background = base64; const bgPreview = document.getElementById('bg-preview'); bgPreview.src = base64; bgPreview.style.display = 'block'; document.getElementById('remove-bg-btn').style.display = 'inline-block'; } });
                 setupFileUpload('preset-avatar-input', (base64) => document.getElementById('preset-avatar-preview').src = base64);
                 document.getElementById('remove-bg-btn').addEventListener('click', () => { if (state.activeChatId) { state.chats[state.activeChatId].settings.background = ''; const bgPreview = document.getElementById('bg-preview'); bgPreview.src = ''; bgPreview.style.display = 'none'; document.getElementById('remove-bg-btn').style.display = 'none'; } });
@@ -22742,7 +22847,31 @@ ${bulletinsContext}
                 document.querySelectorAll('#chat-list-bottom-nav .nav-item').forEach(item => { item.addEventListener('click', () => switchToChatListView(item.dataset.view)); });
                 document.getElementById('qzone-back-btn').addEventListener('click', () => showScreen('home-screen'));
                 document.getElementById('qzone-nickname').addEventListener('click', async () => { const newNickname = await showCustomPrompt("修改昵称", "请输入新的昵称", state.qzoneSettings.nickname); if (newNickname && newNickname.trim()) { state.qzoneSettings.nickname = newNickname.trim(); await saveQzoneSettings(); renderQzoneScreen(); } });
-                document.getElementById('qzone-avatar-container').addEventListener('click', () => document.getElementById('qzone-avatar-input').click());
+                document.getElementById('qzone-avatar-container').addEventListener('click', () => {
+                    // Load current avatar
+                    document.getElementById('qzone-avatar-preview').src = state.qzoneSettings.avatar;
+
+                    // Load toggle state
+                    const toggle = document.getElementById('qzone-border-toggle');
+                    toggle.checked = state.qzoneSettings.avatarBordersEnabled || false;
+
+                    // Show/hide border group based on toggle
+                    const borderGroup = document.getElementById('qzone-border-group');
+                    borderGroup.style.display = toggle.checked ? 'block' : 'none';
+
+                    // Load border if exists
+                    if (state.qzoneSettings.avatarFrame) {
+                        document.getElementById('qzone-border-preview').src = state.qzoneSettings.avatarFrame;
+                        document.getElementById('qzone-border-preview').style.display = 'block';
+                        document.getElementById('qzone-no-border-text').style.display = 'none';
+                        document.getElementById('qzone-remove-border-btn').style.display = 'inline-block';
+                    } else {
+                        removeQzoneBorder();
+                    }
+
+                    // Show modal
+                    document.getElementById('qzone-avatar-modal').classList.add('visible');
+                });
                 document.getElementById('qzone-banner-container').addEventListener('click', () => document.getElementById('qzone-banner-input').click());
                 document.getElementById('qzone-avatar-input').addEventListener('change', async (event) => { const file = event.target.files[0]; if (file) { const dataUrl = await processImageUpload(file); state.qzoneSettings.avatar = dataUrl; await saveQzoneSettings(); renderQzoneScreen(); } event.target.value = null; });
                 document.getElementById('qzone-banner-input').addEventListener('change', async (event) => { const file = event.target.files[0]; if (file) { const dataUrl = await processImageUpload(file); state.qzoneSettings.banner = dataUrl; await saveQzoneSettings(); renderQzoneScreen(); } event.target.value = null; });
