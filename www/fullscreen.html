@@ -3247,24 +3247,35 @@
             position: absolute;
             bottom: -40px;
             /* 让头像和昵称区域向下偏移，一半在背景板内，一半在外 */
-            left: 20px;
+            left: 18px;
             display: flex;
-            align-items: flex-end;
-            /* 让昵称和头像底部对齐 */
-            gap: 4px;
+            align-items: flex-start;
+            /* Changed from center to flex-start to allow independent positioning */
+            gap: 12px;
+        }
+
+        .qzone-user-text {
+            display: flex;
+            flex-direction: column;
+            gap: 26px;
+            padding-top: 16px;
+            transform: translateY(4px);
         }
 
         .qzone-avatar-container {
             position: relative;
+            flex-shrink: 0;
+            width: 92px;
+            height: 92px;
         }
 
         #qzone-avatar-img {
-            width: 100px;
-            height: 100px;
+            width: 92px;
+            height: 92px;
             border-radius: 50%;
-            border: 2px solid white;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
             object-fit: cover;
+            transform: translateY(2px);
+            box-shadow: 0 0 0 2px #f0f2f5;
         }
 
         /* QZone avatar with frame support - overlay approach */
@@ -3310,12 +3321,32 @@
         }
 
         #qzone-nickname {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 600;
             color: #000;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0);
-            padding-bottom: 5px;
-            /* 微调位置 */
+            text-shadow: 2px 2px 8px rgba(255, 255, 255, 0.9);
+        }
+
+        #qzone-status {
+            font-size: 14px;
+            color: #333;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        /* Only move text left when borders are enabled */
+        .qzone-avatar-container.borders-enabled~.qzone-user-text #qzone-nickname {
+            position: relative;
+            left: -4px;
+        }
+
+        .qzone-avatar-container.borders-enabled~.qzone-user-text #qzone-status {
+            position: relative;
+            left: -4px;
+        }
+
+        #qzone-status:hover {
+            opacity: 0.8;
         }
 
         /* 编辑按钮的通用样式 */
@@ -3359,7 +3390,8 @@
         /* === 让编辑功能更“隐形” === */
         #qzone-banner-container,
         #qzone-avatar-container,
-        #qzone-nickname {
+        #qzone-nickname,
+        #qzone-status {
             cursor: pointer;
             /* 鼠标悬停时显示为可点击手势 */
             transition: opacity 0.2s;
@@ -3367,7 +3399,8 @@
 
         #qzone-banner-container:hover,
         #qzone-avatar-container:hover,
-        #qzone-nickname:hover {
+        #qzone-nickname:hover,
+        #qzone-status:hover {
             opacity: 0.85;
             /* 悬停时稍微变暗，给用户反馈 */
         }
@@ -7570,10 +7603,14 @@
                             </div>
                             <div class="qzone-user-info">
                                 <div id="qzone-avatar-container" class="qzone-avatar-container">
-                                    <img id="qzone-avatar-img" src="https://files.catbox.moe/q6z5fc.jpeg" alt="头像">
+                                    <img id="qzone-avatar-img" src="https://files.catbox.moe/q6z5fc.jpeg" alt="头像"
+                                        class="avatar">
                                     <input type="file" id="qzone-avatar-input" accept="image/*" hidden>
                                 </div>
-                                <span id="qzone-nickname">{{user}}</span>
+                                <div class="qzone-user-text">
+                                    <span id="qzone-nickname">{{user}}</span>
+                                    <span id="qzone-status">这个用户很懒，什么也没留下</span>
+                                </div>
                             </div>
                         </div>
                         <div class="qzone-actions-bar" style="display: none;">
