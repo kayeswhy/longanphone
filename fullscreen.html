@@ -9890,8 +9890,45 @@
                 if (state && state.qzoneSettings) {
                     const settings = state.qzoneSettings;
                     document.getElementById('qzone-nickname').textContent = settings.nickname;
-                    document.getElementById('qzone-avatar-img').src = settings.avatar;
                     document.getElementById('qzone-banner-img').src = settings.banner;
+
+                    // Handle avatar with border - keep original structure, just add/remove frame overlay
+                    const avatarContainer = document.getElementById('qzone-avatar-container');
+                    const avatarImg = document.getElementById('qzone-avatar-img');
+
+                    // Always ensure the basic avatar exists
+                    if (!avatarImg) {
+                        avatarContainer.innerHTML = `
+                            <img id="qzone-avatar-img" src="${settings.avatar}" alt="头像" class="avatar">
+                            <input type="file" id="qzone-avatar-input" accept="image/*" hidden>
+                        `;
+                    } else {
+                        // Update avatar source
+                        avatarImg.src = settings.avatar;
+                    }
+
+                    // Remove any existing frame
+                    const existingFrame = avatarContainer.querySelector('.qzone-avatar-frame');
+                    if (existingFrame) {
+                        existingFrame.remove();
+                    }
+
+                    // Handle borders enabled state
+                    if (settings.avatarBordersEnabled) {
+                        // Add borders-enabled class to decrease avatar size
+                        avatarContainer.classList.add('borders-enabled');
+
+                        // Add frame if exists
+                        if (settings.avatarFrame) {
+                            const frameImg = document.createElement('img');
+                            frameImg.src = settings.avatarFrame;
+                            frameImg.className = 'qzone-avatar-frame';
+                            avatarContainer.appendChild(frameImg);
+                        }
+                    } else {
+                        // Remove borders-enabled class to restore original size
+                        avatarContainer.classList.remove('borders-enabled');
+                    }
                 }
             }
             window.renderQzoneScreenProxy = renderQzoneScreen;
@@ -10033,9 +10070,35 @@
                     const isLikedByUser = post.likes && post.likes.includes(userNickname);
                     const isFavoritedByUser = favoritedPostIds.has(post.id); // 使用Set快速查找
 
+                    // Create avatar HTML with overlay frame support (no layout changes)
+                    let avatarHtml;
+                    let avatarFrameSrc = '';
+
+                    // Determine avatar frame (only if borders are enabled)
+                    if (state.qzoneSettings.avatarBordersEnabled) {
+                        if (post.authorId === 'user') {
+                            avatarFrameSrc = state.qzoneSettings.avatarFrame || '';
+                        } else if (state.chats[post.authorId]) {
+                            avatarFrameSrc = state.chats[post.authorId].settings.aiAvatarFrame || '';
+                        }
+                    }
+
+                    if (avatarFrameSrc) {
+                        // Use overlay approach - no layout changes
+                        avatarHtml = `
+                            <div class="avatar-container">
+                                <img src="${authorAvatar}" class="avatar">
+                                <img src="${avatarFrameSrc}" class="avatar-frame">
+                            </div>
+                        `;
+                    } else {
+                        // Regular avatar without frame
+                        avatarHtml = `<img src="${authorAvatar}" class="post-avatar">`;
+                    }
+
                     postEl.innerHTML = `
                     <div class="post-header">
-                        <img src="${authorAvatar}" class="post-avatar">
+                        ${avatarHtml}
                         <div class="post-info">
                             <span class="post-nickname">${authorNickname}</span>
                             <span class="post-timestamp">${formatPostTimestamp(post.timestamp)}</span>
