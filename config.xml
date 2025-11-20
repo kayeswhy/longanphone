@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="io.cordova.hellocordova" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
+    <name>LycheePhone</name>
+    <description>Sample Apache Cordova App</description>
+    <author email="dev@cordova.apache.org" href="https://cordova.apache.org">
+        Apache Cordova Team
+    </author>
+    <icon src="www/res/icon.png" />
+    <content src="index.html" />
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+    
+    <!-- Custom URL scheme for Spotify callback -->
+    <plugin name="cordova-plugin-customurlscheme" spec="~5.0.2">
+        <variable name="URL_SCHEME" value="lycheephone" />
+        <variable name="ANDROID_SCHEME" value="lycheephone" />
+        <variable name="ANDROID_HOST" value="spotify-callback" />
+    </plugin>
+    
+    <!-- File plugin configuration -->
+    <preference name="AndroidPersistentFileLocation" value="Compatibility" />
+    
+    <!-- Enable hardware acceleration for backdrop-filter support -->
+    <preference name="AndroidHardwareAcceleration" value="true" />
+    
+    <!-- Use modern WebView engine -->
+    <preference name="AndroidWebViewEngine" value="SystemWebView" />
+    
+    <!-- Enable WebGL and advanced CSS features -->
+    <preference name="AndroidWebViewFlags" value="--enable-features=VizDisplayCompositor,BackdropFilter --enable-blink-features=CSSBackdropFilter" />
+    
+    <!-- Android platform configuration -->
+    <platform name="android">
+        <!-- Add file provider configuration -->
+        <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
+            <application android:requestLegacyExternalStorage="true" android:debuggable="true" />
+        </edit-config>
+        
+        <!-- Add file sharing paths -->
+        <resource-file src="resources/android/xml/file_paths.xml" target="app/src/main/res/xml/file_paths.xml" />
+        
+        <!-- Add permissions -->
+        <config-file target="AndroidManifest.xml" parent="/*">
+            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+        </config-file>
+    </platform>
+</widget>

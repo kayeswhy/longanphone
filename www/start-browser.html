@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EPhone - Browser Launcher</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 600px;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+        
+        .status.checking {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .launch-btn {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            margin: 10px;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .launch-btn:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+        
+        .launch-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .instructions {
+            text-align: left;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .code {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 EPhone Browser Launcher</h1>
+        
+        <div id="status" class="status checking">
+            🔍 Checking browser compatibility...
+        </div>
+        
+        <div id="launch-section" class="hidden">
+            <button id="launch-btn" class="launch-btn">🚀 Launch EPhone</button>
+        </div>
+        
+        <div id="server-instructions" class="instructions hidden">
+            <h3>🚨 Local Server Required</h3>
+            <p>For full functionality, please run a local server:</p>
+            
+            <h4>Option 1: Python (Easiest)</h4>
+            <div class="code">cd www<br>python -m http.server 8000</div>
+            <p>Then open: <code>http://localhost:8000/fullscreen-browser.html</code></p>
+            
+            <h4>Option 2: Node.js</h4>
+            <div class="code">node serve-browser.js</div>
+            <p>Then open: <code>http://localhost:3000</code></p>
+            
+            <h4>Option 3: PHP</h4>
+            <div class="code">cd www<br>php -S localhost:8000</div>
+            <p>Then open: <code>http://localhost:8000/fullscreen-browser.html</code></p>
+        </div>
+        
+        <div id="direct-launch" class="instructions hidden">
+            <h3>⚠️ Limited Functionality Mode</h3>
+            <p>You can try launching directly, but some features may not work due to browser security restrictions.</p>
+            <button id="direct-launch-btn" class="launch-btn">⚡ Try Direct Launch</button>
+        </div>
+    </div>
+
+    <script>
+        // Check if we're running from a server or file://
+        function checkEnvironment() {
+            const status = document.getElementById('status');
+            const launchSection = document.getElementById('launch-section');
+            const serverInstructions = document.getElementById('server-instructions');
+            const directLaunch = document.getElementById('direct-launch');
+            
+            const isFileProtocol = window.location.protocol === 'file:';
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const isHttps = window.location.protocol === 'https:';
+            const isHttp = window.location.protocol === 'http:';
+            
+            if (isFileProtocol) {
+                // Running from file:// - show server instructions
+                status.className = 'status error';
+                status.innerHTML = '⚠️ Running from file:// - Server recommended for full functionality';
+                serverInstructions.classList.remove('hidden');
+                directLaunch.classList.remove('hidden');
+            } else if (isLocalhost || isHttp || isHttps) {
+                // Running from server - good to go
+                status.className = 'status success';
+                status.innerHTML = '✅ Server environment detected - Full functionality available';
+                launchSection.classList.remove('hidden');
+            } else {
+                // Unknown environment
+                status.className = 'status error';
+                status.innerHTML = '❓ Unknown environment - May have limited functionality';
+                directLaunch.classList.remove('hidden');
+            }
+        }
+        
+        // Launch the app
+        function launchApp() {
+            // Test if we can access the app file
+            fetch('fullscreen-browser.html')
+                .then(response => {
+                    if (response.ok) {
+                        window.location.href = 'fullscreen-browser.html';
+                    } else {
+                        throw new Error('App file not accessible');
+                    }
+                })
+                .catch(error => {
+                    alert('Cannot access app file. Please ensure you are running from the www directory or use a local server.');
+                });
+        }
+        
+        function directLaunch() {
+            // Try direct launch with warning
+            const confirmed = confirm(
+                'Direct launch may have limited functionality due to browser security restrictions.\n\n' +
+                'Features that may not work:\n' +
+                '• File uploads/downloads\n' +
+                '• Some database operations\n' +
+                '• External resource loading\n\n' +
+                'Continue anyway?'
+            );
+            
+            if (confirmed) {
+                window.location.href = 'fullscreen-browser.html';
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('launch-btn').addEventListener('click', launchApp);
+        document.getElementById('direct-launch-btn').addEventListener('click', directLaunch);
+        
+        // Check environment on load
+        checkEnvironment();
+    </script>
+</body>
+</html>

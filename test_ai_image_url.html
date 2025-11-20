@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Image URL Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .ai-generated-image { max-width: 180px; border-radius: 12px; margin: 10px 0; }
+        .message-example { background: #f5f5f5; padding: 10px; margin: 10px 0; }
+        code { background: #eee; padding: 2px 4px; }
+    </style>
+</head>
+<body>
+    <h1>AI Image URL Feature Test</h1>
+    
+    <div class="test-section">
+        <h2>1. Default AI Image (No Custom URL)</h2>
+        <p>This shows how AI images looked before - using the hardcoded placeholder:</p>
+        <div class="message-example">
+            <img src="https://files.catbox.moe/cww7rw.jpg" class="ai-generated-image" alt="AI生成的图片" data-description="一只可爱的小猫在阳光下打哈欠">
+            <p><strong>Description:</strong> 一只可爱的小猫在阳光下打哈欠</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Custom AI Image (With Custom URL)</h2>
+        <p>This shows how AI images will look with custom URLs:</p>
+        <div class="message-example">
+            <img src="https://picsum.photos/180/120?random=1" class="ai-generated-image" alt="AI生成的图片" data-description="美丽的山景风光照片">
+            <p><strong>Description:</strong> 美丽的山景风光照片</p>
+            <p><strong>Custom URL:</strong> <code>https://picsum.photos/180/120?random=1</code></p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Message Editor JSON Format</h2>
+        <p>When editing AI images, users will see this JSON format:</p>
+        <pre><code>{
+  "type": "ai_image",
+  "description": "美丽的山景风光照片",
+  "imageUrl": "https://picsum.photos/180/120?random=1"
+}</code></pre>
+        <p>Users can edit both the description and imageUrl fields.</p>
+    </div>
+
+    <div class="test-section">
+        <h2>4. API Safety</h2>
+        <p><strong>✅ Safe for API calls:</strong></p>
+        <ul>
+            <li>Only the <code>description</code> field is sent to the AI API</li>
+            <li>The <code>imageUrl</code> field is only used for display</li>
+            <li>No breaking changes to existing API communication</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>5. How to Use</h2>
+        <ol>
+            <li>Find an AI image message in your chat</li>
+            <li>Long press the message to open the context menu</li>
+            <li>Click "编辑" (Edit)</li>
+            <li>You'll see the JSON format with both description and imageUrl</li>
+            <li>Edit the imageUrl to any valid image URL</li>
+            <li>Save the changes</li>
+            <li>The image will now display your custom URL instead of the placeholder</li>
+        </ol>
+    </div>
+
+    <script>
+        // Add click handlers to show descriptions (like in the real app)
+        document.querySelectorAll('.ai-generated-image').forEach(img => {
+            img.addEventListener('click', () => {
+                const description = img.dataset.description;
+                alert('照片描述: ' + description);
+            });
+        });
+    </script>
+</body>
+</html>
