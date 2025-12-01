@@ -10854,6 +10854,13 @@
                 state.personaPresets = personaPresets || [];
                 state.qzoneSettings = qzoneSettings || { id: 'main', nickname: '{{user}}', avatar: 'https://files.catbox.moe/q6z5fc.jpeg', banner: 'https://files.catbox.moe/r5heyt.gif' };
                 allFavoriteItems = initialFavorites || [];
+
+                // Sync app icons from globalSettings to localStorage (for Cordova JSON imports)
+                if (state.globalSettings.appIcons) {
+                    Object.keys(state.globalSettings.appIcons).forEach(appId => {
+                        localStorage.setItem(`appIcon_${appId}`, state.globalSettings.appIcons[appId]);
+                    });
+                }
             }
 
             async function saveGlobalPlaylist() { await db.musicLibrary.put({ id: 'main', playlist: musicState.playlist }); }
