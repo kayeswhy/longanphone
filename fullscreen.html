@@ -4,10 +4,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>EPhone</title>
+    <title>EPhone - Browser Version</title>
     <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
-    <script src="cordova.js"></script>
-    <script src="js/cordova-init.js"></script>
+    
+    <!-- Browser Compatibility Layer - Load BEFORE Cordova scripts -->
+    <script src="js/browser-compatibility.js"></script>
+    
+    <!-- Enhanced Spotify OAuth Fix for Browsers -->
+    <script>
+        console.log('🎵 Loading Spotify OAuth browser fix...');
+        
+        // Enhanced Spotify OAuth handling for browsers
+        (function() {
+            // Check for Spotify callback on page load
+            function handleSpotifyCallback() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const code = urlParams.get('code');
+                const error = urlParams.get('error');
+                
+                if (code || error) {
+                    console.log('🎵 Spotify OAuth callback detected');
+                    
+                    // Clean up URL
+                    const cleanUrl = window.location.origin + window.location.pathname;
+                    window.history.replaceState({}, document.title, cleanUrl);
+                    
+                    if (error) {
+                        console.error('🎵 Spotify OAuth error:', error);
+                        alert('Spotify授权失败: ' + error);
+                        return;
+                    }
+                    
+                    if (code) {
+                        console.log('🎵 Spotify authorization code received:', code.substring(0, 20) + '...');
+                        
+                        // Try to find and call the token exchange function
+                        if (window.exchangeCodeForToken) {
+                            window.exchangeCodeForToken(code);
+                        } else if (window.handleSpotifyCallback) {
+                            window.handleSpotifyCallback(code);
+                        } else {
+                            // Store the code for later use
+                            localStorage.setItem('spotify_auth_code', code);
+                            console.log('🎵 Stored Spotify code for later processing');
+                        }
+                    }
+                }
+            }
+            
+            // Override window.open to fix Spotify OAuth URLs
+            const originalWindowOpen = window.open;
+            window.open = function(url, target, features) {
+                console.log('🎵 window.open called with:', url);
+                
+                if (url && typeof url === 'string' && url.includes('accounts.spotify.com/authorize')) {
+                    console.log('🎵 Detected Spotify OAuth URL, fixing redirect URI...');
+                    
+                    // Replace custom scheme with browser-compatible redirect
+                    const browserRedirectUri = window.location.origin + window.location.pathname;
+                    const fixedUrl = url.replace(
+                        /redirect_uri=[^&]+/,
+                        'redirect_uri=' + encodeURIComponent(browserRedirectUri)
+                    );
+                    
+                    console.log('🎵 Original URL:', url);
+                    console.log('🎵 Fixed URL:', fixedUrl);
+                    
+                    return originalWindowOpen.call(this, fixedUrl, target, features);
+                }
+                
+                return originalWindowOpen.call(this, url, target, features);
+            };
+            
+            // Also intercept location.href assignments
+            let originalLocationHref = window.location.href;
+            Object.defineProperty(window.location, 'href', {
+                get: function() {
+                    return originalLocationHref;
+                },
+                set: function(url) {
+                    if (url && url.includes('accounts.spotify.com/authorize') && url.includes('lycheephone://')) {
+                        console.log('🎵 Fixing Spotify redirect in location.href');
+                        const browserRedirectUri = window.location.origin + window.location.pathname;
+                        const fixedUrl = url.replace(
+                            /redirect_uri=[^&]+/,
+                            'redirect_uri=' + encodeURIComponent(browserRedirectUri)
+                        );
+                        originalLocationHref = fixedUrl;
+                        window.location.replace(fixedUrl);
+                    } else {
+                        originalLocationHref = url;
+                        window.location.replace(url);
+                    }
+                }
+            });
+            
+            // Check for callback immediately and on DOM ready
+            handleSpotifyCallback();
+            
+            document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(handleSpotifyCallback, 100);
+            });
+            
+            // Make callback handler globally available
+            window.handleSpotifyOAuthCallback = handleSpotifyCallback;
+            
+        })();
+    </script>
+    
+    <!-- Browser-only mode - no cordova.js needed -->
+    <script>
+        console.log('🌐 Browser mode - skipping cordova.js');
+    </script>
     <script src="js/export.js"></script>
     <script src="https://sdk.scdn.co/spotify-player.js"></script>
     <style>
@@ -247,7 +355,7 @@
             position: relative;
             z-index: 15;
             flex-shrink: 0;
-            padding: 15px 12px;
+            padding: 15px 20px;
             padding-top: 15px;
             background-color: rgba(247, 247, 247, 0.8);
             backdrop-filter: blur(10px);
@@ -432,52 +540,6 @@
         /* Specific alignment fix for appearance settings screen only */
         #appearance-settings-screen .form-group label {
             margin-left: -20px;
-        }
-
-        /* Toggle Switch Component */
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 24px;
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 24px;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked+.slider {
-            background-color: var(--accent-color);
-        }
-
-        input:checked+.slider:before {
-            transform: translateX(26px);
         }
 
         .form-group input,
@@ -1187,31 +1249,6 @@
 
         .avatar-upload input[type="file"] {
             display: none;
-        }
-
-        /* Border Preview Component */
-        .border-preview-container {
-            width: 60px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            background-color: #f9f9f9;
-            margin-right: 15px;
-        }
-
-        .border-preview {
-            width: 50px;
-            height: 50px;
-            object-fit: contain;
-        }
-
-        .no-border-text {
-            font-size: 12px;
-            color: #999;
-            text-align: center;
         }
 
         .theme-selector label {
@@ -3240,7 +3277,7 @@
             /* z-index 保持，或者可以更高 */
             flex-shrink: 0;
             /* 防止被压缩 */
-            padding: 15px 12px;
+            padding: 15px 20px;
             padding-top: 16px;
             background-color: rgba(247, 247, 247, 0.7);
             backdrop-filter: blur(10px);
@@ -3258,8 +3295,6 @@
             font-size: 24px;
             cursor: pointer;
             color: var(--accent-color);
-            margin-left: 8px;
-            /* Add spacing to match other screens */
         }
 
         .qzone-header .ai-post-btn {
@@ -3320,106 +3355,33 @@
             position: absolute;
             bottom: -40px;
             /* 让头像和昵称区域向下偏移，一半在背景板内，一半在外 */
-            left: 18px;
+            left: 20px;
             display: flex;
-            align-items: flex-start;
-            /* Changed from center to flex-start to allow independent positioning */
-            gap: 12px;
-        }
-
-        .qzone-user-text {
-            display: flex;
-            flex-direction: column;
-            gap: 26px;
-            padding-top: 16px;
-            transform: translateY(4px);
+            align-items: flex-end;
+            /* 让昵称和头像底部对齐 */
+            gap: 4px;
         }
 
         .qzone-avatar-container {
             position: relative;
-            flex-shrink: 0;
-            width: 92px;
-            height: 92px;
         }
 
         #qzone-avatar-img {
-            width: 92px;
-            height: 92px;
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
             object-fit: cover;
-            transform: translateY(2px);
-            box-shadow: 0 0 0 2px #f0f2f5;
-        }
-
-        /* QZone avatar with frame support - overlay approach */
-        #qzone-avatar-container .avatar {
-            width: 92px;
-            height: 92px;
-            border-radius: 50%;
-            object-fit: cover;
-            transform: translateY(2px);
-            box-shadow: 0 0 0 2px #f0f2f5;
-        }
-
-        /* When borders are enabled, decrease avatar size by 16px but keep container size */
-        #qzone-avatar-container.borders-enabled #qzone-avatar-img,
-        #qzone-avatar-container.borders-enabled .avatar {
-            width: 76px;
-            height: 76px;
-            /* Center the smaller avatar within the same container */
-            position: relative;
-            left: 8px;
-            top: 10px;
-            transform: translateY(0px);
-            /* Reset transform for border mode */
-        }
-
-        .qzone-avatar-frame {
-            position: absolute;
-            width: 153px;
-            height: 153px;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            z-index: 2;
-        }
-
-        /* Adjust border frame size and position when avatar is smaller */
-        #qzone-avatar-container.borders-enabled .qzone-avatar-frame {
-            width: 131px;
-            height: 131px;
-            top: calc(50% + 0px);
-            /* Move border down 1px more */
         }
 
         #qzone-nickname {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 600;
             color: #000;
-            text-shadow: 2px 2px 8px rgba(255, 255, 255, 0.9);
-        }
-
-        #qzone-status {
-            font-size: 14px;
-            color: #333;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-
-        /* Only move text left when borders are enabled */
-        .qzone-avatar-container.borders-enabled~.qzone-user-text #qzone-nickname {
-            position: relative;
-            left: -4px;
-        }
-
-        .qzone-avatar-container.borders-enabled~.qzone-user-text #qzone-status {
-            position: relative;
-            left: -4px;
-        }
-
-        #qzone-status:hover {
-            opacity: 0.8;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0);
+            padding-bottom: 5px;
+            /* 微调位置 */
         }
 
         /* 编辑按钮的通用样式 */
@@ -3463,8 +3425,7 @@
         /* === 让编辑功能更“隐形” === */
         #qzone-banner-container,
         #qzone-avatar-container,
-        #qzone-nickname,
-        #qzone-status {
+        #qzone-nickname {
             cursor: pointer;
             /* 鼠标悬停时显示为可点击手势 */
             transition: opacity 0.2s;
@@ -3472,8 +3433,7 @@
 
         #qzone-banner-container:hover,
         #qzone-avatar-container:hover,
-        #qzone-nickname:hover,
-        #qzone-status:hover {
+        #qzone-nickname:hover {
             opacity: 0.85;
             /* 悬停时稍微变暗，给用户反馈 */
         }
@@ -3573,32 +3533,6 @@
             height: 40px;
             border-radius: 50%;
             object-fit: cover;
-        }
-
-        /* Post avatar with frame support - overlay approach */
-        .post-header .avatar-container {
-            position: relative;
-            width: 40px;
-            height: 40px;
-            flex-shrink: 0;
-        }
-
-        .post-header .avatar-container .avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        .post-header .avatar-container .avatar-frame {
-            position: absolute;
-            width: 67px;
-            height: 67px;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            z-index: 2;
         }
 
         .post-info {
@@ -5423,9 +5357,9 @@
 
         /* 3. 普通头像（无框时）的样式 */
         .message-bubble .avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+            width: 34px;
+            height: 34px;
+            border-radius: 20%;
             object-fit: cover;
             flex-shrink: 0;
         }
@@ -5433,9 +5367,9 @@
         /* 4. 带框头像的容器【默认】大小 */
         .avatar-with-frame {
             position: relative;
-            width: 40px;
+            width: 34px;
             /* 默认和普通头像一样大 */
-            height: 40px;
+            height: 34px;
             margin: 0 auto;
             transition: all 0.2s ease;
             /* 为大小变化添加动画 */
@@ -5444,19 +5378,18 @@
 
         /* 5. 当【有框】时，带框头像的容器自动【变大】，解决您说的“图小框大”问题！ */
         .avatar-group.has-frame .avatar-with-frame {
-            width: 67px;
+            width: 43px;
             /* 图片容器变大 */
-            height: 67px;
+            height: 43px;
         }
 
         /* 6. 头像图片本身，永远撑满它的容器 */
         .avatar-with-frame .avatar-img {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 40px;
-            height: 40px;
-            transform: translate(-50%, -50%);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             border-radius: 50%;
             object-fit: cover;
             z-index: 1;
@@ -5465,11 +5398,10 @@
         /* 7. 头像框，永远基于它的父容器居中 */
         .avatar-with-frame .avatar-frame {
             position: absolute;
-            width: 67px;
-            height: 67px;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            width: 52px;
+            height: 52px;
+            top: -9px;
+            left: -4px;
             z-index: 2;
             pointer-events: none;
         }
@@ -6725,16 +6657,16 @@
         #chat-header-title-wrapper {
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
-            /* 左对齐 */
+            align-items: center;
+            /* 水平居中 */
             gap: 2px;
             /* 标题和状态之间的微小间距 */
 
-            /* 移动到左侧，紧邻返回按钮 */
-            position: static;
+            /* 为了让它能在flex布局中正确居中 */
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
             max-width: 60%;
-            flex: 1;
-            /* 让标题区域占据剩余空间 */
         }
 
         /* 2. 主标题的样式微调 */
@@ -7406,6 +7338,36 @@
         #export-progress-modal-overlay.visible #export-progress-modal {
             transform: scale(1);
         }
+
+        /* Browser-specific styles */
+
+        /* Ensure proper scrolling in browser */
+        body {
+            overflow: auto !important;
+        }
+
+        #phone-screen {
+            overflow: auto !important;
+        }
+
+        /* Browser file input styling */
+        .browser-file-input {
+            margin: 10px 0;
+            padding: 8px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .browser-file-input:hover {
+            border-color: var(--accent-color);
+        }
+
+        .browser-file-input input[type="file"] {
+            display: none;
+        }
     </style>
 </head>
 
@@ -7676,14 +7638,10 @@
                             </div>
                             <div class="qzone-user-info">
                                 <div id="qzone-avatar-container" class="qzone-avatar-container">
-                                    <img id="qzone-avatar-img" src="https://files.catbox.moe/q6z5fc.jpeg" alt="头像"
-                                        class="avatar">
+                                    <img id="qzone-avatar-img" src="https://files.catbox.moe/q6z5fc.jpeg" alt="头像">
                                     <input type="file" id="qzone-avatar-input" accept="image/*" hidden>
                                 </div>
-                                <div class="qzone-user-text">
-                                    <span id="qzone-nickname">{{user}}</span>
-                                    <span id="qzone-status">这个用户很懒，什么也没留下</span>
-                                </div>
+                                <span id="qzone-nickname">{{user}}</span>
                             </div>
                         </div>
                         <div class="qzone-actions-bar" style="display: none;">
@@ -9393,44 +9351,6 @@
     </div>
     <!-- ▲▲▲ Date Creation Modal End ▲▲▲ -->
 
-    <!-- ▼▼▼ QZone Avatar Modal ▼▼▼ -->
-    <div id="qzone-avatar-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><span>编辑头像</span></div>
-            <div class="modal-body">
-                <div class="form-group"><label>头像</label>
-                    <div class="avatar-upload"><img id="qzone-avatar-preview"><button
-                            onclick="document.getElementById('qzone-avatar-file-input').click()">上传头像</button><input
-                            type="file" id="qzone-avatar-file-input" accept="image/*"></div>
-                </div>
-                <div class="form-group">
-                    <label>启用头像边框</label>
-                    <label class="switch">
-                        <input type="checkbox" id="qzone-border-toggle">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="form-group" id="qzone-border-group"><label>头像边框</label>
-                    <div class="avatar-upload">
-                        <div class="border-preview-container">
-                            <img id="qzone-border-preview" class="border-preview" style="display: none;">
-                            <span id="qzone-no-border-text" class="no-border-text">无边框</span>
-                        </div>
-                        <button onclick="document.getElementById('qzone-border-input').click()">上传边框</button>
-                        <button id="qzone-remove-border-btn" onclick="removeQzoneBorder()"
-                            style="display: none;">移除边框</button>
-                        <input type="file" id="qzone-border-input" accept="image/png,image/gif">
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="cancel" onclick="document.getElementById('qzone-avatar-modal').classList.remove('visible')">取消</button>
-                <button class="save" id="save-qzone-avatar-btn">保存</button>
-            </div>
-        </div>
-    </div>
-    <!-- ▲▲▲ QZone Avatar Modal End ▲▲▲ -->
-
     <!-- ▼▼▼ Sticker Pack Edit Modal ▼▼▼ -->
     <div id="sticker-pack-edit-modal" class="modal">
         <div class="modal-content" style="width: 300px; height: auto;">
@@ -9890,45 +9810,8 @@
                 if (state && state.qzoneSettings) {
                     const settings = state.qzoneSettings;
                     document.getElementById('qzone-nickname').textContent = settings.nickname;
+                    document.getElementById('qzone-avatar-img').src = settings.avatar;
                     document.getElementById('qzone-banner-img').src = settings.banner;
-
-                    // Handle avatar with border - keep original structure, just add/remove frame overlay
-                    const avatarContainer = document.getElementById('qzone-avatar-container');
-                    const avatarImg = document.getElementById('qzone-avatar-img');
-
-                    // Always ensure the basic avatar exists
-                    if (!avatarImg) {
-                        avatarContainer.innerHTML = `
-                            <img id="qzone-avatar-img" src="${settings.avatar}" alt="头像" class="avatar">
-                            <input type="file" id="qzone-avatar-input" accept="image/*" hidden>
-                        `;
-                    } else {
-                        // Update avatar source
-                        avatarImg.src = settings.avatar;
-                    }
-
-                    // Remove any existing frame
-                    const existingFrame = avatarContainer.querySelector('.qzone-avatar-frame');
-                    if (existingFrame) {
-                        existingFrame.remove();
-                    }
-
-                    // Handle borders enabled state
-                    if (settings.avatarBordersEnabled) {
-                        // Add borders-enabled class to decrease avatar size
-                        avatarContainer.classList.add('borders-enabled');
-
-                        // Add frame if exists
-                        if (settings.avatarFrame) {
-                            const frameImg = document.createElement('img');
-                            frameImg.src = settings.avatarFrame;
-                            frameImg.className = 'qzone-avatar-frame';
-                            avatarContainer.appendChild(frameImg);
-                        }
-                    } else {
-                        // Remove borders-enabled class to restore original size
-                        avatarContainer.classList.remove('borders-enabled');
-                    }
                 }
             }
             window.renderQzoneScreenProxy = renderQzoneScreen;
@@ -10070,35 +9953,9 @@
                     const isLikedByUser = post.likes && post.likes.includes(userNickname);
                     const isFavoritedByUser = favoritedPostIds.has(post.id); // 使用Set快速查找
 
-                    // Create avatar HTML with overlay frame support (no layout changes)
-                    let avatarHtml;
-                    let avatarFrameSrc = '';
-
-                    // Determine avatar frame (only if borders are enabled)
-                    if (state.qzoneSettings.avatarBordersEnabled) {
-                        if (post.authorId === 'user') {
-                            avatarFrameSrc = state.qzoneSettings.avatarFrame || '';
-                        } else if (state.chats[post.authorId]) {
-                            avatarFrameSrc = state.chats[post.authorId].settings.aiAvatarFrame || '';
-                        }
-                    }
-
-                    if (avatarFrameSrc) {
-                        // Use overlay approach - no layout changes
-                        avatarHtml = `
-                            <div class="avatar-container">
-                                <img src="${authorAvatar}" class="avatar">
-                                <img src="${avatarFrameSrc}" class="avatar-frame">
-                            </div>
-                        `;
-                    } else {
-                        // Regular avatar without frame
-                        avatarHtml = `<img src="${authorAvatar}" class="post-avatar">`;
-                    }
-
                     postEl.innerHTML = `
                     <div class="post-header">
-                        ${avatarHtml}
+                        <img src="${authorAvatar}" class="post-avatar">
                         <div class="post-info">
                             <span class="post-nickname">${authorNickname}</span>
                             <span class="post-timestamp">${formatPostTimestamp(post.timestamp)}</span>
@@ -12115,36 +11972,10 @@ ${worldBookContent}
                 if (isGoogleGeminiAPI(proxyUrl)) {
 
                     // Google Gemini API format
-                    const contents = messages.map(msg => {
-                        const role = msg.role === 'assistant' ? 'model' : 'user';
-                        let parts = [];
-
-                        // Handle image content (OpenAI format -> Gemini format)
-                        if (Array.isArray(msg.content)) {
-                            for (const item of msg.content) {
-                                if (item.type === 'image_url' && item.image_url?.url) {
-                                    // Extract base64 data and mime type from data URL
-                                    const dataUrl = item.image_url.url;
-                                    const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-                                    if (matches) {
-                                        parts.push({
-                                            inline_data: {
-                                                mime_type: matches[1],
-                                                data: matches[2]
-                                            }
-                                        });
-                                    }
-                                } else if (item.type === 'text' && item.text) {
-                                    parts.push({ text: item.text });
-                                }
-                            }
-                        } else {
-                            // Regular text content
-                            parts = [{ text: msg.content }];
-                        }
-
-                        return { role, parts };
-                    });
+                    const contents = messages.map(msg => ({
+                        role: msg.role === 'assistant' ? 'model' : 'user',
+                        parts: [{ text: msg.content }]
+                    }));
 
 
 
@@ -16386,15 +16217,40 @@ ${worldBookContent}
 
             function generateCodeChallenge(verifier) { const encoder = new TextEncoder(); const data = encoder.encode(verifier); return crypto.subtle.digest('SHA-256', data).then(digest => { return btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''); }); }
 
-            async function initSpotifyAuth() { const clientId = '4a89adc960014897bfcc45c55c1c0aff'; const redirectUri = 'lycheephone://spotify-callback'; const scopes = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state'; const codeVerifier = generateCodeVerifier(); const codeChallenge = await generateCodeChallenge(codeVerifier); window.spotifyCodeVerifier = codeVerifier; const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&code_challenge_method=S256&code_challenge=${codeChallenge}`; window.location.href = authUrl; }
+            async function initSpotifyAuth() { 
+                const clientId = '4a89adc960014897bfcc45c55c1c0aff'; 
+                
+                // Try to determine the best redirect URI
+                let redirectUri;
+                if (window.location.protocol === 'http:' && window.location.hostname === 'localhost') {
+                    redirectUri = 'http://localhost:8000/fullscreen.html';
+                } else if (window.location.protocol === 'https:') {
+                    redirectUri = window.location.origin + window.location.pathname;
+                } else {
+                    // Fallback for file:// protocol
+                    redirectUri = 'http://localhost:8000/fullscreen.html';
+                }
+                
+                console.log('🎵 Using Spotify redirect URI:', redirectUri); const scopes = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state'; const codeVerifier = generateCodeVerifier(); const codeChallenge = await generateCodeChallenge(codeVerifier); window.spotifyCodeVerifier = codeVerifier; const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&code_challenge_method=S256&code_challenge=${codeChallenge}`; window.location.href = authUrl; }
 
             function getSpotifyTokenFromUrl() { const hash = window.location.hash.substring(1); const params = new URLSearchParams(hash); const token = params.get('access_token'); if (token) { spotifyAccessToken = token; window.history.replaceState({}, document.title, window.location.pathname); return true; } return false; }
 
             async function loadSavedSpotifyToken() { try { const spotifySettings = await db.globalSettings.get('spotify'); if (spotifySettings && spotifySettings.accessToken) { if (spotifySettings.expiresAt > Date.now()) { spotifyAccessToken = spotifySettings.accessToken; initSpotifyPlayer(); } else { await db.globalSettings.delete('spotify'); } } } catch (error) { } }
 
-            function handleSpotifyCallback(url) { if (url.startsWith('lycheephone://spotify-callback')) { const urlParts = url.split('?'); if (urlParts.length > 1) { const params = new URLSearchParams(urlParts[1]); const code = params.get('code'); const error = params.get('error'); if (error) { if (error === 'access_denied') { alert('Spotify授权被拒绝。请重试并点击"同意"按钮。'); } else { alert('Spotify error: ' + error); } return; } if (code) { exchangeCodeForToken(code); } } } }
+            function handleSpotifyCallback(url) { if (url && (url.startsWith('lycheephone://spotify-callback') || url.includes('?code='))) { const urlParts = url.split('?'); if (urlParts.length > 1) { const params = new URLSearchParams(urlParts[1]); const code = params.get('code'); const error = params.get('error'); if (error) { if (error === 'access_denied') { alert('Spotify授权被拒绝。请重试并点击"同意"按钮。'); } else { alert('Spotify error: ' + error); } return; } if (code) { exchangeCodeForToken(code); } } } }
 
-            async function exchangeCodeForToken(code) { const clientId = '4a89adc960014897bfcc45c55c1c0aff'; const redirectUri = 'lycheephone://spotify-callback'; const codeVerifier = window.spotifyCodeVerifier; if (!codeVerifier) { return; } try { const response = await fetch('https://accounts.spotify.com/api/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'authorization_code', code: code, redirect_uri: redirectUri, client_id: clientId, code_verifier: codeVerifier }) }); const data = await response.json(); if (data.access_token) { spotifyAccessToken = data.access_token; await db.globalSettings.put({ id: 'spotify', accessToken: data.access_token, refreshToken: data.refresh_token, expiresAt: Date.now() + (data.expires_in * 1000) }); initSpotifyPlayer(); } } catch (error) { console.error('Token exchange error:', error); } }
+            async function exchangeCodeForToken(code) { 
+                const clientId = '4a89adc960014897bfcc45c55c1c0aff'; 
+                
+                // Use the same redirect URI logic as initSpotifyAuth
+                let redirectUri;
+                if (window.location.protocol === 'http:' && window.location.hostname === 'localhost') {
+                    redirectUri = 'http://localhost:8000/fullscreen.html';
+                } else if (window.location.protocol === 'https:') {
+                    redirectUri = window.location.origin + window.location.pathname;
+                } else {
+                    redirectUri = 'http://localhost:8000/fullscreen.html';
+                } const codeVerifier = window.spotifyCodeVerifier; if (!codeVerifier) { return; } try { const response = await fetch('https://accounts.spotify.com/api/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'authorization_code', code: code, redirect_uri: redirectUri, client_id: clientId, code_verifier: codeVerifier }) }); const data = await response.json(); if (data.access_token) { spotifyAccessToken = data.access_token; await db.globalSettings.put({ id: 'spotify', accessToken: data.access_token, refreshToken: data.refresh_token, expiresAt: Date.now() + (data.expires_in * 1000) }); initSpotifyPlayer(); } } catch (error) { console.error('Token exchange error:', error); } }
 
             async function initSpotifyPlayer() { if (!spotifyAccessToken) return false; if (!window.Spotify) { window.onSpotifyWebPlaybackSDKReady = () => { }; await new Promise(resolve => { if (window.Spotify) { resolve(); } else { window.onSpotifyWebPlaybackSDKReady = resolve; } }); } spotifyPlayer = new Spotify.Player({ name: 'LycheePhone Music Player', getOAuthToken: cb => cb(spotifyAccessToken), volume: 0.5 }); spotifyPlayer.addListener('ready', ({ device_id }) => { spotifyDeviceId = device_id; migrateSpotifyAlbumArt(); }); spotifyPlayer.addListener('not_ready', ({ device_id }) => { }); spotifyPlayer.addListener('player_state_changed', (state) => { if (state && musicState.isActive) { const track = musicState.playlist[musicState.currentIndex]; if (track && track.isSpotify) { musicState.isPlaying = !state.paused; updatePlayerUI(); updateNowPlayingProgress(); } } }); const success = await spotifyPlayer.connect(); return success; }
 
@@ -16423,16 +16279,6 @@ ${worldBookContent}
             async function deletePersonaPreset() { const confirmed = await showCustomConfirm('删除预设', '确定要删除这个人设预设吗？此操作不可恢复。', { confirmButtonClass: 'btn-danger' }); if (confirmed && editingPersonaPresetId) { await db.personaPresets.delete(editingPersonaPresetId); state.personaPresets = state.personaPresets.filter(p => p.id !== editingPersonaPresetId); hidePresetActions(); renderPersonaLibrary(); } }
 
             function closePersonaEditor() { personaEditorModal.classList.remove('visible'); editingPersonaPresetId = null; }
-
-            function removeQzoneBorder() {
-                document.getElementById('qzone-border-preview').style.display = 'none';
-                document.getElementById('qzone-border-preview').src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                document.getElementById('qzone-no-border-text').style.display = 'block';
-                document.getElementById('qzone-remove-border-btn').style.display = 'none';
-            }
-
-            // Make function globally accessible
-            window.removeQzoneBorder = removeQzoneBorder;
 
             async function savePersonaPreset() { const avatar = document.getElementById('preset-avatar-preview').src; const persona = document.getElementById('preset-persona-input').value.trim(); if (avatar === defaultAvatar && !persona) { alert("头像和人设不能都为空哦！"); return; } if (editingPersonaPresetId) { const preset = state.personaPresets.find(p => p.id === editingPersonaPresetId); if (preset) { preset.avatar = avatar; preset.persona = persona; await db.personaPresets.put(preset); } } else { const newPreset = { id: 'preset_' + Date.now(), avatar: avatar, persona: persona }; await db.personaPresets.add(newPreset); state.personaPresets.push(newPreset); } renderPersonaLibrary(); closePersonaEditor(); }
 
@@ -22007,7 +21853,7 @@ ${bulletinsContext}
 
                 document.getElementById('custom-modal-cancel').addEventListener('click', hideCustomModal);
                 document.getElementById('custom-modal-overlay').addEventListener('click', (e) => { if (e.target === modalOverlay) hideCustomModal(); });
-                document.getElementById('export-data-btn').addEventListener('click', window.exportWithPermissionCheck);
+                // Export button event listener is handled in export.js
                 document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import-data-input').click());
                 document.getElementById('import-data-input').addEventListener('change', e => importBackup(e.target.files[0]));
 
@@ -22645,63 +22491,6 @@ ${bulletinsContext}
                 setupFileUpload('my-avatar-input', (base64) => document.getElementById('my-avatar-preview').src = base64);
                 setupFileUpload('group-avatar-input', (base64) => document.getElementById('group-avatar-preview').src = base64);
                 setupFileUpload('member-avatar-input', (base64) => document.getElementById('member-avatar-preview').src = base64);
-
-                // QZone avatar modal event handlers
-                document.getElementById('save-qzone-avatar-btn').addEventListener('click', async () => {
-                    // Save avatar
-                    state.qzoneSettings.avatar = document.getElementById('qzone-avatar-preview').src;
-
-                    // Save toggle state
-                    const toggle = document.getElementById('qzone-border-toggle');
-                    state.qzoneSettings.avatarBordersEnabled = toggle.checked;
-
-                    // Save border (only if toggle is enabled)
-                    if (toggle.checked) {
-                        const borderSrc = document.getElementById('qzone-border-preview').src;
-                        state.qzoneSettings.avatarFrame = (borderSrc && borderSrc !== 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7') ? borderSrc : null;
-                    }
-
-                    // Save to database
-                    await saveQzoneSettings();
-                    renderQzoneScreen();
-                    await renderQzonePosts(); // Re-render posts with new border settings
-
-                    // Close modal
-                    document.getElementById('qzone-avatar-modal').classList.remove('visible');
-                });
-
-                // QZone avatar file upload handler
-                document.getElementById('qzone-avatar-file-input').addEventListener('change', async (event) => {
-                    const file = event.target.files[0];
-                    if (file) {
-                        const dataUrl = await processImageUpload(file);
-                        document.getElementById('qzone-avatar-preview').src = dataUrl;
-                    }
-                    event.target.value = null;
-                });
-
-                // QZone border toggle handler
-                document.getElementById('qzone-border-toggle').addEventListener('change', (e) => {
-                    const borderGroup = document.getElementById('qzone-border-group');
-                    borderGroup.style.display = e.target.checked ? 'block' : 'none';
-                });
-
-                // QZone border upload handler
-                document.getElementById('qzone-border-input').addEventListener('change', async (event) => {
-                    const file = event.target.files[0];
-                    if (file) {
-                        const dataUrl = await new Promise((res, rej) => {
-                            const reader = new FileReader();
-                            reader.onload = () => res(reader.result);
-                            reader.readAsDataURL(file);
-                        });
-                        document.getElementById('qzone-border-preview').src = dataUrl;
-                        document.getElementById('qzone-border-preview').style.display = 'block';
-                        document.getElementById('qzone-no-border-text').style.display = 'none';
-                        document.getElementById('qzone-remove-border-btn').style.display = 'inline-block';
-                    }
-                    event.target.value = null;
-                });
                 setupFileUpload('bg-input', (base64) => { if (state.activeChatId) { state.chats[state.activeChatId].settings.background = base64; const bgPreview = document.getElementById('bg-preview'); bgPreview.src = base64; bgPreview.style.display = 'block'; document.getElementById('remove-bg-btn').style.display = 'inline-block'; } });
                 setupFileUpload('preset-avatar-input', (base64) => document.getElementById('preset-avatar-preview').src = base64);
                 document.getElementById('remove-bg-btn').addEventListener('click', () => { if (state.activeChatId) { state.chats[state.activeChatId].settings.background = ''; const bgPreview = document.getElementById('bg-preview'); bgPreview.src = ''; bgPreview.style.display = 'none'; document.getElementById('remove-bg-btn').style.display = 'none'; } });
@@ -22910,31 +22699,7 @@ ${bulletinsContext}
                 document.querySelectorAll('#chat-list-bottom-nav .nav-item').forEach(item => { item.addEventListener('click', () => switchToChatListView(item.dataset.view)); });
                 document.getElementById('qzone-back-btn').addEventListener('click', () => showScreen('home-screen'));
                 document.getElementById('qzone-nickname').addEventListener('click', async () => { const newNickname = await showCustomPrompt("修改昵称", "请输入新的昵称", state.qzoneSettings.nickname); if (newNickname && newNickname.trim()) { state.qzoneSettings.nickname = newNickname.trim(); await saveQzoneSettings(); renderQzoneScreen(); } });
-                document.getElementById('qzone-avatar-container').addEventListener('click', () => {
-                    // Load current avatar
-                    document.getElementById('qzone-avatar-preview').src = state.qzoneSettings.avatar;
-
-                    // Load toggle state
-                    const toggle = document.getElementById('qzone-border-toggle');
-                    toggle.checked = state.qzoneSettings.avatarBordersEnabled || false;
-
-                    // Show/hide border group based on toggle
-                    const borderGroup = document.getElementById('qzone-border-group');
-                    borderGroup.style.display = toggle.checked ? 'block' : 'none';
-
-                    // Load border if exists
-                    if (state.qzoneSettings.avatarFrame) {
-                        document.getElementById('qzone-border-preview').src = state.qzoneSettings.avatarFrame;
-                        document.getElementById('qzone-border-preview').style.display = 'block';
-                        document.getElementById('qzone-no-border-text').style.display = 'none';
-                        document.getElementById('qzone-remove-border-btn').style.display = 'inline-block';
-                    } else {
-                        removeQzoneBorder();
-                    }
-
-                    // Show modal
-                    document.getElementById('qzone-avatar-modal').classList.add('visible');
-                });
+                document.getElementById('qzone-avatar-container').addEventListener('click', () => document.getElementById('qzone-avatar-input').click());
                 document.getElementById('qzone-banner-container').addEventListener('click', () => document.getElementById('qzone-banner-input').click());
                 document.getElementById('qzone-avatar-input').addEventListener('change', async (event) => { const file = event.target.files[0]; if (file) { const dataUrl = await processImageUpload(file); state.qzoneSettings.avatar = dataUrl; await saveQzoneSettings(); renderQzoneScreen(); } event.target.value = null; });
                 document.getElementById('qzone-banner-input').addEventListener('change', async (event) => { const file = event.target.files[0]; if (file) { const dataUrl = await processImageUpload(file); state.qzoneSettings.banner = dataUrl; await saveQzoneSettings(); renderQzoneScreen(); } event.target.value = null; });

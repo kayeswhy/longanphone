@@ -247,7 +247,7 @@
             position: relative;
             z-index: 15;
             flex-shrink: 0;
-            padding: 15px 12px;
+            padding: 15px 20px;
             padding-top: 15px;
             background-color: rgba(247, 247, 247, 0.8);
             backdrop-filter: blur(10px);
@@ -432,52 +432,6 @@
         /* Specific alignment fix for appearance settings screen only */
         #appearance-settings-screen .form-group label {
             margin-left: -20px;
-        }
-
-        /* Toggle Switch Component */
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 24px;
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 24px;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked+.slider {
-            background-color: var(--accent-color);
-        }
-
-        input:checked+.slider:before {
-            transform: translateX(26px);
         }
 
         .form-group input,
@@ -1187,31 +1141,6 @@
 
         .avatar-upload input[type="file"] {
             display: none;
-        }
-
-        /* Border Preview Component */
-        .border-preview-container {
-            width: 60px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            background-color: #f9f9f9;
-            margin-right: 15px;
-        }
-
-        .border-preview {
-            width: 50px;
-            height: 50px;
-            object-fit: contain;
-        }
-
-        .no-border-text {
-            font-size: 12px;
-            color: #999;
-            text-align: center;
         }
 
         .theme-selector label {
@@ -3240,7 +3169,7 @@
             /* z-index 保持，或者可以更高 */
             flex-shrink: 0;
             /* 防止被压缩 */
-            padding: 15px 12px;
+            padding: 15px 20px;
             padding-top: 16px;
             background-color: rgba(247, 247, 247, 0.7);
             backdrop-filter: blur(10px);
@@ -3258,8 +3187,6 @@
             font-size: 24px;
             cursor: pointer;
             color: var(--accent-color);
-            margin-left: 8px;
-            /* Add spacing to match other screens */
         }
 
         .qzone-header .ai-post-btn {
@@ -3320,106 +3247,33 @@
             position: absolute;
             bottom: -40px;
             /* 让头像和昵称区域向下偏移，一半在背景板内，一半在外 */
-            left: 18px;
+            left: 20px;
             display: flex;
-            align-items: flex-start;
-            /* Changed from center to flex-start to allow independent positioning */
-            gap: 12px;
-        }
-
-        .qzone-user-text {
-            display: flex;
-            flex-direction: column;
-            gap: 26px;
-            padding-top: 16px;
-            transform: translateY(4px);
+            align-items: flex-end;
+            /* 让昵称和头像底部对齐 */
+            gap: 4px;
         }
 
         .qzone-avatar-container {
             position: relative;
-            flex-shrink: 0;
-            width: 92px;
-            height: 92px;
         }
 
         #qzone-avatar-img {
-            width: 92px;
-            height: 92px;
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
             object-fit: cover;
-            transform: translateY(2px);
-            box-shadow: 0 0 0 2px #f0f2f5;
-        }
-
-        /* QZone avatar with frame support - overlay approach */
-        #qzone-avatar-container .avatar {
-            width: 92px;
-            height: 92px;
-            border-radius: 50%;
-            object-fit: cover;
-            transform: translateY(2px);
-            box-shadow: 0 0 0 2px #f0f2f5;
-        }
-
-        /* When borders are enabled, decrease avatar size by 16px but keep container size */
-        #qzone-avatar-container.borders-enabled #qzone-avatar-img,
-        #qzone-avatar-container.borders-enabled .avatar {
-            width: 76px;
-            height: 76px;
-            /* Center the smaller avatar within the same container */
-            position: relative;
-            left: 8px;
-            top: 10px;
-            transform: translateY(0px);
-            /* Reset transform for border mode */
-        }
-
-        .qzone-avatar-frame {
-            position: absolute;
-            width: 153px;
-            height: 153px;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            z-index: 2;
-        }
-
-        /* Adjust border frame size and position when avatar is smaller */
-        #qzone-avatar-container.borders-enabled .qzone-avatar-frame {
-            width: 131px;
-            height: 131px;
-            top: calc(50% + 0px);
-            /* Move border down 1px more */
         }
 
         #qzone-nickname {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 600;
             color: #000;
-            text-shadow: 2px 2px 8px rgba(255, 255, 255, 0.9);
-        }
-
-        #qzone-status {
-            font-size: 14px;
-            color: #333;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-
-        /* Only move text left when borders are enabled */
-        .qzone-avatar-container.borders-enabled~.qzone-user-text #qzone-nickname {
-            position: relative;
-            left: -4px;
-        }
-
-        .qzone-avatar-container.borders-enabled~.qzone-user-text #qzone-status {
-            position: relative;
-            left: -4px;
-        }
-
-        #qzone-status:hover {
-            opacity: 0.8;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0);
+            padding-bottom: 5px;
+            /* 微调位置 */
         }
 
         /* 编辑按钮的通用样式 */
@@ -3463,8 +3317,7 @@
         /* === 让编辑功能更“隐形” === */
         #qzone-banner-container,
         #qzone-avatar-container,
-        #qzone-nickname,
-        #qzone-status {
+        #qzone-nickname {
             cursor: pointer;
             /* 鼠标悬停时显示为可点击手势 */
             transition: opacity 0.2s;
@@ -3472,8 +3325,7 @@
 
         #qzone-banner-container:hover,
         #qzone-avatar-container:hover,
-        #qzone-nickname:hover,
-        #qzone-status:hover {
+        #qzone-nickname:hover {
             opacity: 0.85;
             /* 悬停时稍微变暗，给用户反馈 */
         }
@@ -3573,32 +3425,6 @@
             height: 40px;
             border-radius: 50%;
             object-fit: cover;
-        }
-
-        /* Post avatar with frame support - overlay approach */
-        .post-header .avatar-container {
-            position: relative;
-            width: 40px;
-            height: 40px;
-            flex-shrink: 0;
-        }
-
-        .post-header .avatar-container .avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        .post-header .avatar-container .avatar-frame {
-            position: absolute;
-            width: 67px;
-            height: 67px;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            z-index: 2;
         }
 
         .post-info {
@@ -6725,16 +6551,16 @@
         #chat-header-title-wrapper {
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
-            /* 左对齐 */
+            align-items: center;
+            /* 水平居中 */
             gap: 2px;
             /* 标题和状态之间的微小间距 */
 
-            /* 移动到左侧，紧邻返回按钮 */
-            position: static;
+            /* 为了让它能在flex布局中正确居中 */
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
             max-width: 60%;
-            flex: 1;
-            /* 让标题区域占据剩余空间 */
         }
 
         /* 2. 主标题的样式微调 */
@@ -7676,14 +7502,10 @@
                             </div>
                             <div class="qzone-user-info">
                                 <div id="qzone-avatar-container" class="qzone-avatar-container">
-                                    <img id="qzone-avatar-img" src="https://files.catbox.moe/q6z5fc.jpeg" alt="头像"
-                                        class="avatar">
+                                    <img id="qzone-avatar-img" src="https://files.catbox.moe/q6z5fc.jpeg" alt="头像">
                                     <input type="file" id="qzone-avatar-input" accept="image/*" hidden>
                                 </div>
-                                <div class="qzone-user-text">
-                                    <span id="qzone-nickname">{{user}}</span>
-                                    <span id="qzone-status">这个用户很懒，什么也没留下</span>
-                                </div>
+                                <span id="qzone-nickname">{{user}}</span>
                             </div>
                         </div>
                         <div class="qzone-actions-bar" style="display: none;">
@@ -9393,44 +9215,6 @@
     </div>
     <!-- ▲▲▲ Date Creation Modal End ▲▲▲ -->
 
-    <!-- ▼▼▼ QZone Avatar Modal ▼▼▼ -->
-    <div id="qzone-avatar-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><span>编辑头像</span></div>
-            <div class="modal-body">
-                <div class="form-group"><label>头像</label>
-                    <div class="avatar-upload"><img id="qzone-avatar-preview"><button
-                            onclick="document.getElementById('qzone-avatar-file-input').click()">上传头像</button><input
-                            type="file" id="qzone-avatar-file-input" accept="image/*"></div>
-                </div>
-                <div class="form-group">
-                    <label>启用头像边框</label>
-                    <label class="switch">
-                        <input type="checkbox" id="qzone-border-toggle">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="form-group" id="qzone-border-group"><label>头像边框</label>
-                    <div class="avatar-upload">
-                        <div class="border-preview-container">
-                            <img id="qzone-border-preview" class="border-preview" style="display: none;">
-                            <span id="qzone-no-border-text" class="no-border-text">无边框</span>
-                        </div>
-                        <button onclick="document.getElementById('qzone-border-input').click()">上传边框</button>
-                        <button id="qzone-remove-border-btn" onclick="removeQzoneBorder()"
-                            style="display: none;">移除边框</button>
-                        <input type="file" id="qzone-border-input" accept="image/png,image/gif">
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="cancel" onclick="document.getElementById('qzone-avatar-modal').classList.remove('visible')">取消</button>
-                <button class="save" id="save-qzone-avatar-btn">保存</button>
-            </div>
-        </div>
-    </div>
-    <!-- ▲▲▲ QZone Avatar Modal End ▲▲▲ -->
-
     <!-- ▼▼▼ Sticker Pack Edit Modal ▼▼▼ -->
     <div id="sticker-pack-edit-modal" class="modal">
         <div class="modal-content" style="width: 300px; height: auto;">
@@ -9890,45 +9674,8 @@
                 if (state && state.qzoneSettings) {
                     const settings = state.qzoneSettings;
                     document.getElementById('qzone-nickname').textContent = settings.nickname;
+                    document.getElementById('qzone-avatar-img').src = settings.avatar;
                     document.getElementById('qzone-banner-img').src = settings.banner;
-
-                    // Handle avatar with border - keep original structure, just add/remove frame overlay
-                    const avatarContainer = document.getElementById('qzone-avatar-container');
-                    const avatarImg = document.getElementById('qzone-avatar-img');
-
-                    // Always ensure the basic avatar exists
-                    if (!avatarImg) {
-                        avatarContainer.innerHTML = `
-                            <img id="qzone-avatar-img" src="${settings.avatar}" alt="头像" class="avatar">
-                            <input type="file" id="qzone-avatar-input" accept="image/*" hidden>
-                        `;
-                    } else {
-                        // Update avatar source
-                        avatarImg.src = settings.avatar;
-                    }
-
-                    // Remove any existing frame
-                    const existingFrame = avatarContainer.querySelector('.qzone-avatar-frame');
-                    if (existingFrame) {
-                        existingFrame.remove();
-                    }
-
-                    // Handle borders enabled state
-                    if (settings.avatarBordersEnabled) {
-                        // Add borders-enabled class to decrease avatar size
-                        avatarContainer.classList.add('borders-enabled');
-
-                        // Add frame if exists
-                        if (settings.avatarFrame) {
-                            const frameImg = document.createElement('img');
-                            frameImg.src = settings.avatarFrame;
-                            frameImg.className = 'qzone-avatar-frame';
-                            avatarContainer.appendChild(frameImg);
-                        }
-                    } else {
-                        // Remove borders-enabled class to restore original size
-                        avatarContainer.classList.remove('borders-enabled');
-                    }
                 }
             }
             window.renderQzoneScreenProxy = renderQzoneScreen;
@@ -10070,35 +9817,9 @@
                     const isLikedByUser = post.likes && post.likes.includes(userNickname);
                     const isFavoritedByUser = favoritedPostIds.has(post.id); // 使用Set快速查找
 
-                    // Create avatar HTML with overlay frame support (no layout changes)
-                    let avatarHtml;
-                    let avatarFrameSrc = '';
-
-                    // Determine avatar frame (only if borders are enabled)
-                    if (state.qzoneSettings.avatarBordersEnabled) {
-                        if (post.authorId === 'user') {
-                            avatarFrameSrc = state.qzoneSettings.avatarFrame || '';
-                        } else if (state.chats[post.authorId]) {
-                            avatarFrameSrc = state.chats[post.authorId].settings.aiAvatarFrame || '';
-                        }
-                    }
-
-                    if (avatarFrameSrc) {
-                        // Use overlay approach - no layout changes
-                        avatarHtml = `
-                            <div class="avatar-container">
-                                <img src="${authorAvatar}" class="avatar">
-                                <img src="${avatarFrameSrc}" class="avatar-frame">
-                            </div>
-                        `;
-                    } else {
-                        // Regular avatar without frame
-                        avatarHtml = `<img src="${authorAvatar}" class="post-avatar">`;
-                    }
-
                     postEl.innerHTML = `
                     <div class="post-header">
-                        ${avatarHtml}
+                        <img src="${authorAvatar}" class="post-avatar">
                         <div class="post-info">
                             <span class="post-nickname">${authorNickname}</span>
                             <span class="post-timestamp">${formatPostTimestamp(post.timestamp)}</span>
@@ -16424,16 +16145,6 @@ ${worldBookContent}
 
             function closePersonaEditor() { personaEditorModal.classList.remove('visible'); editingPersonaPresetId = null; }
 
-            function removeQzoneBorder() {
-                document.getElementById('qzone-border-preview').style.display = 'none';
-                document.getElementById('qzone-border-preview').src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                document.getElementById('qzone-no-border-text').style.display = 'block';
-                document.getElementById('qzone-remove-border-btn').style.display = 'none';
-            }
-
-            // Make function globally accessible
-            window.removeQzoneBorder = removeQzoneBorder;
-
             async function savePersonaPreset() { const avatar = document.getElementById('preset-avatar-preview').src; const persona = document.getElementById('preset-persona-input').value.trim(); if (avatar === defaultAvatar && !persona) { alert("头像和人设不能都为空哦！"); return; } if (editingPersonaPresetId) { const preset = state.personaPresets.find(p => p.id === editingPersonaPresetId); if (preset) { preset.avatar = avatar; preset.persona = persona; await db.personaPresets.put(preset); } } else { const newPreset = { id: 'preset_' + Date.now(), avatar: avatar, persona: persona }; await db.personaPresets.add(newPreset); state.personaPresets.push(newPreset); } renderPersonaLibrary(); closePersonaEditor(); }
 
             // Memory action functions (copying persona pattern)
@@ -22645,63 +22356,6 @@ ${bulletinsContext}
                 setupFileUpload('my-avatar-input', (base64) => document.getElementById('my-avatar-preview').src = base64);
                 setupFileUpload('group-avatar-input', (base64) => document.getElementById('group-avatar-preview').src = base64);
                 setupFileUpload('member-avatar-input', (base64) => document.getElementById('member-avatar-preview').src = base64);
-
-                // QZone avatar modal event handlers
-                document.getElementById('save-qzone-avatar-btn').addEventListener('click', async () => {
-                    // Save avatar
-                    state.qzoneSettings.avatar = document.getElementById('qzone-avatar-preview').src;
-
-                    // Save toggle state
-                    const toggle = document.getElementById('qzone-border-toggle');
-                    state.qzoneSettings.avatarBordersEnabled = toggle.checked;
-
-                    // Save border (only if toggle is enabled)
-                    if (toggle.checked) {
-                        const borderSrc = document.getElementById('qzone-border-preview').src;
-                        state.qzoneSettings.avatarFrame = (borderSrc && borderSrc !== 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7') ? borderSrc : null;
-                    }
-
-                    // Save to database
-                    await saveQzoneSettings();
-                    renderQzoneScreen();
-                    await renderQzonePosts(); // Re-render posts with new border settings
-
-                    // Close modal
-                    document.getElementById('qzone-avatar-modal').classList.remove('visible');
-                });
-
-                // QZone avatar file upload handler
-                document.getElementById('qzone-avatar-file-input').addEventListener('change', async (event) => {
-                    const file = event.target.files[0];
-                    if (file) {
-                        const dataUrl = await processImageUpload(file);
-                        document.getElementById('qzone-avatar-preview').src = dataUrl;
-                    }
-                    event.target.value = null;
-                });
-
-                // QZone border toggle handler
-                document.getElementById('qzone-border-toggle').addEventListener('change', (e) => {
-                    const borderGroup = document.getElementById('qzone-border-group');
-                    borderGroup.style.display = e.target.checked ? 'block' : 'none';
-                });
-
-                // QZone border upload handler
-                document.getElementById('qzone-border-input').addEventListener('change', async (event) => {
-                    const file = event.target.files[0];
-                    if (file) {
-                        const dataUrl = await new Promise((res, rej) => {
-                            const reader = new FileReader();
-                            reader.onload = () => res(reader.result);
-                            reader.readAsDataURL(file);
-                        });
-                        document.getElementById('qzone-border-preview').src = dataUrl;
-                        document.getElementById('qzone-border-preview').style.display = 'block';
-                        document.getElementById('qzone-no-border-text').style.display = 'none';
-                        document.getElementById('qzone-remove-border-btn').style.display = 'inline-block';
-                    }
-                    event.target.value = null;
-                });
                 setupFileUpload('bg-input', (base64) => { if (state.activeChatId) { state.chats[state.activeChatId].settings.background = base64; const bgPreview = document.getElementById('bg-preview'); bgPreview.src = base64; bgPreview.style.display = 'block'; document.getElementById('remove-bg-btn').style.display = 'inline-block'; } });
                 setupFileUpload('preset-avatar-input', (base64) => document.getElementById('preset-avatar-preview').src = base64);
                 document.getElementById('remove-bg-btn').addEventListener('click', () => { if (state.activeChatId) { state.chats[state.activeChatId].settings.background = ''; const bgPreview = document.getElementById('bg-preview'); bgPreview.src = ''; bgPreview.style.display = 'none'; document.getElementById('remove-bg-btn').style.display = 'none'; } });
@@ -22910,31 +22564,7 @@ ${bulletinsContext}
                 document.querySelectorAll('#chat-list-bottom-nav .nav-item').forEach(item => { item.addEventListener('click', () => switchToChatListView(item.dataset.view)); });
                 document.getElementById('qzone-back-btn').addEventListener('click', () => showScreen('home-screen'));
                 document.getElementById('qzone-nickname').addEventListener('click', async () => { const newNickname = await showCustomPrompt("修改昵称", "请输入新的昵称", state.qzoneSettings.nickname); if (newNickname && newNickname.trim()) { state.qzoneSettings.nickname = newNickname.trim(); await saveQzoneSettings(); renderQzoneScreen(); } });
-                document.getElementById('qzone-avatar-container').addEventListener('click', () => {
-                    // Load current avatar
-                    document.getElementById('qzone-avatar-preview').src = state.qzoneSettings.avatar;
-
-                    // Load toggle state
-                    const toggle = document.getElementById('qzone-border-toggle');
-                    toggle.checked = state.qzoneSettings.avatarBordersEnabled || false;
-
-                    // Show/hide border group based on toggle
-                    const borderGroup = document.getElementById('qzone-border-group');
-                    borderGroup.style.display = toggle.checked ? 'block' : 'none';
-
-                    // Load border if exists
-                    if (state.qzoneSettings.avatarFrame) {
-                        document.getElementById('qzone-border-preview').src = state.qzoneSettings.avatarFrame;
-                        document.getElementById('qzone-border-preview').style.display = 'block';
-                        document.getElementById('qzone-no-border-text').style.display = 'none';
-                        document.getElementById('qzone-remove-border-btn').style.display = 'inline-block';
-                    } else {
-                        removeQzoneBorder();
-                    }
-
-                    // Show modal
-                    document.getElementById('qzone-avatar-modal').classList.add('visible');
-                });
+                document.getElementById('qzone-avatar-container').addEventListener('click', () => document.getElementById('qzone-avatar-input').click());
                 document.getElementById('qzone-banner-container').addEventListener('click', () => document.getElementById('qzone-banner-input').click());
                 document.getElementById('qzone-avatar-input').addEventListener('change', async (event) => { const file = event.target.files[0]; if (file) { const dataUrl = await processImageUpload(file); state.qzoneSettings.avatar = dataUrl; await saveQzoneSettings(); renderQzoneScreen(); } event.target.value = null; });
                 document.getElementById('qzone-banner-input').addEventListener('change', async (event) => { const file = event.target.files[0]; if (file) { const dataUrl = await processImageUpload(file); state.qzoneSettings.banner = dataUrl; await saveQzoneSettings(); renderQzoneScreen(); } event.target.value = null; });
