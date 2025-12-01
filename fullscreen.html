@@ -12809,10 +12809,10 @@ ${worldBookContent}
 
             function applyAppIconsToHomeScreen() {
                 const appIconMappings = {
-                    'qq': 'div.app-icon:nth-child(2) img', // First app icon (QQ)
-                    'moments': 'div.app-icon:nth-child(3) img', // Second app icon (朋友圈)
-                    'calendar': 'div.app-icon:nth-child(4) img', // Third app icon (日历)
-                    'settings': 'div.app-icon:nth-child(5) img' // Fourth app icon (设置)
+                    'qq': '#app-grid .app-row:nth-child(2) .app-icon:nth-child(2) .icon-bg img', // First app icon (QQ)
+                    'moments': '#app-grid .app-row:nth-child(2) .app-icon:nth-child(3) .icon-bg img', // Second app icon (朋友圈)
+                    'calendar': '#app-grid .app-row:nth-child(2) .app-icon:nth-child(4) .icon-bg img', // Third app icon (日历)
+                    'settings': '#app-grid .app-row:nth-child(2) .app-icon:nth-child(5) .icon-bg img' // Fourth app icon (设置)
                 };
 
                 Object.keys(appIconMappings).forEach(appId => {
