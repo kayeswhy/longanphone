@@ -10763,11 +10763,6 @@
                 bubble.className = `message-bubble ${isUser ? 'user' : 'ai'}`;
                 bubble.dataset.timestamp = message.timestamp;
 
-                // Create timestamp element (outside bubble, inside wrapper)
-                const timestampEl = document.createElement('span');
-                timestampEl.className = 'timestamp';
-                timestampEl.textContent = formatTimestamp(message.timestamp);
-
                 // Get avatar (use meetup session chat context or fallback to activeChatId)
                 let avatarSrc;
                 let chatId = null;
@@ -10807,9 +10802,8 @@
                     </div>
                 `;
 
-                // Append bubble and timestamp to wrapper in EXACT same order as regular chat
+                // Append bubble to wrapper
                 wrapper.appendChild(bubble);
-                wrapper.appendChild(timestampEl);
 
                 // Add long press listener for message actions (same as regular chat)
                 addLongPressListener(wrapper, () => showMeetupMessageActions(message.timestamp));
@@ -11737,11 +11731,6 @@ ${worldBookContent}
                 bubble.className = `message-bubble ${isUser ? 'user' : 'ai'}`;
                 bubble.dataset.timestamp = message.timestamp;
 
-                // Create timestamp element (outside bubble, inside wrapper)
-                const timestampEl = document.createElement('span');
-                timestampEl.className = 'timestamp';
-                timestampEl.textContent = formatTimestamp(message.timestamp);
-
                 // Get avatar - try multiple sources for chat context
                 let avatarSrc;
                 let chatId = null;
@@ -11786,9 +11775,8 @@ ${worldBookContent}
                     </div>
                 `;
 
-                // Append bubble and timestamp to wrapper in EXACT same order as regular chat
+                // Append bubble to wrapper
                 wrapper.appendChild(bubble);
-                wrapper.appendChild(timestampEl);
 
                 // Add long press listener for message actions (same as regular chat)
                 if (!isReadOnly) {
