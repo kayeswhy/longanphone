@@ -10509,6 +10509,11 @@
                         activeMeetupEventId: window.activeMeetupEventId || null
                     });
 
+                    // Debug: Show meetup session export status
+                    if (window.activeMeetupSession && window.activeMeetupEventId) {
+                        alert(`导出包含活跃约会: ${window.activeMeetupSession.title || '未知'}`);
+                    }
+
                     const blob = new Blob(
                         [JSON.stringify(backupData, null, 2)],
                         { type: 'application/json' }
@@ -10578,7 +10583,9 @@
                     if (data.activeMeetupSession && data.activeMeetupEventId) {
                         localStorage.setItem('activeMeetupSession', JSON.stringify(data.activeMeetupSession));
                         localStorage.setItem('activeMeetupEventId', data.activeMeetupEventId);
+                        alert(`导入约会会话: ${data.activeMeetupSession.title || '未知'}`);
                     } else {
+                        alert('备份中没有活跃约会会话');
                         // Clear any existing meetup session data if backup doesn't have one
                         localStorage.removeItem('activeMeetupSession');
                         localStorage.removeItem('activeMeetupEventId');
