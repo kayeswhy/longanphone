@@ -10489,11 +10489,24 @@
                         db.memories.toArray() // 【核心修正】新增
                     ]);
 
+                    // Collect app icons from localStorage
+                    const appIcons = {};
+                    const appIds = ['qq', 'moments', 'calendar', 'settings'];
+                    appIds.forEach(appId => {
+                        const iconUrl = localStorage.getItem(`appIcon_${appId}`);
+                        if (iconUrl) {
+                            appIcons[appId] = iconUrl;
+                        }
+                    });
+
                     Object.assign(backupData, {
                         chats, worldBooks, userStickers, apiConfig, globalSettings,
                         personaPresets, musicLibrary, qzoneSettings, qzonePosts,
                         qzoneAlbums, qzonePhotos, favorites, qzoneGroups,
-                        memories // 【核心修正】新增
+                        memories, // 【核心修正】新增
+                        appIcons, // Add app icons to backup
+                        activeMeetupSession: window.activeMeetupSession || null,
+                        activeMeetupEventId: window.activeMeetupEventId || null
                     });
 
                     const blob = new Blob(
@@ -10553,6 +10566,23 @@
                         if (data.musicLibrary) await db.musicLibrary.put(data.musicLibrary);
                         if (data.qzoneSettings) await db.qzoneSettings.put(data.qzoneSettings);
                     });
+
+                    // Restore app icons to localStorage
+                    if (data.appIcons) {
+                        Object.keys(data.appIcons).forEach(appId => {
+                            localStorage.setItem(`appIcon_${appId}`, data.appIcons[appId]);
+                        });
+                    }
+
+                    // Restore active meetup session if it exists in backup
+                    if (data.activeMeetupSession && data.activeMeetupEventId) {
+                        localStorage.setItem('activeMeetupSession', JSON.stringify(data.activeMeetupSession));
+                        localStorage.setItem('activeMeetupEventId', data.activeMeetupEventId);
+                    } else {
+                        // Clear any existing meetup session data if backup doesn't have one
+                        localStorage.removeItem('activeMeetupSession');
+                        localStorage.removeItem('activeMeetupEventId');
+                    }
 
                     await showCustomAlert('导入成功', '所有数据已成功恢复！应用即将刷新以应用所有更改。');
 
