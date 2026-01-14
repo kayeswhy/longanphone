@@ -20908,7 +20908,7 @@ ${timeGapText}现在，请像一个真人一样，思考一下你（作为某个
 
                                 // Get all date mode messages for this event
                                 const meetupMessages = chat.history.filter(msg =>
-                                    msg.meetup && msg.meetup.eventId === session.eventId
+                                    msg.meetup && (msg.meetup.eventId === session.eventId || msg.meetup.eventId === window.activeMeetupEventId)
                                 );
 
                                 // DEBUG: Log messages being saved in recreation
@@ -20964,6 +20964,13 @@ ${timeGapText}现在，请像一个真人一样，思考一下你（作为某个
                                 };
 
                                 const newEventId = await db.memories.add(newDateEvent);
+
+                                // Add to cache if it exists
+                                if (window.memoriesData) {
+                                    // Get the complete memory object with the new ID
+                                    const completeMemory = { ...newDateEvent, id: newEventId };
+                                    window.memoriesData.push(completeMemory);
+                                }
 
                                 // Update the session with new event ID
                                 window.activeMeetupEventId = newEventId;
