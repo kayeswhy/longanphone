@@ -7942,6 +7942,13 @@
                         <!-- ▲▲▲ 新增结束 ▲▲▲ -->
 
                         <div class="header-actions">
+                            <span class="action-btn" id="chat-search-btn" title="搜索消息"><svg width="24" height="24"
+                                    viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="20" cy="20" r="14" stroke="currentColor" stroke-width="4"
+                                        stroke-linecap="round" stroke-linejoin="round" />
+                                    <path d="m30.5 30.5 9.5 9.5" stroke="currentColor" stroke-width="4"
+                                        stroke-linecap="round" stroke-linejoin="round" />
+                                </svg></span>
                             <!-- 请将这两行新代码粘贴到上面删除的位置 -->
                             <span class="action-btn" id="listen-together-btn" title="一起听"><svg width="24" height="24"
                                     viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -9630,6 +9637,29 @@
         </div>
     </div>
     <!-- ▲▲▲ Date End Confirmation Modal End ▲▲▲ -->
+
+    <!-- ▼▼▼ Chat Search Modal ▼▼▼ -->
+    <div id="chat-search-modal" class="modal">
+        <div class="modal-content" style="width: 320px; height: 70%;">
+            <div class="modal-header">
+                <span>搜索消息</span>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 15px;">
+                <div class="form-group">
+                    <input type="text" id="search-input" placeholder="输入关键词搜索消息..."
+                        style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc;">
+                </div>
+                <div id="search-results"
+                    style="flex: 1; overflow-y: auto; border: 1px solid #eee; border-radius: 8px; padding: 10px;">
+                    <p style="text-align: center; color: #999; margin: 20px 0;">输入关键词开始搜索</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel" id="close-search-btn" style="width: 100%;">关闭</button>
+            </div>
+        </div>
+    </div>
+    <!-- ▲▲▲ Chat Search Modal End ▲▲▲ -->
 
     <!-- ▼▼▼ 【全新shep】备份版本选择模态框 ▼▼▼ -->
     <div id="restore-version-modal" class="modal">
@@ -21597,6 +21627,229 @@ ${timeGapText}现在，请像一个真人一样，思考一下你（作为某个
             }
             // ▲▲▲ Share Link Functions End ▲▲▲
 
+            // ▼▼▼ Chat Search Functions ▼▼▼
+            function openChatSearchModal() {
+                if (!state.activeChatId) return;
+
+                // Clear previous search
+                document.getElementById('search-input').value = '';
+                document.getElementById('search-results').innerHTML = '<p style="text-align: center; color: #999; margin: 20px 0;">输入关键词开始搜索</p>';
+
+                document.getElementById('chat-search-modal').classList.add('visible');
+                setTimeout(() => document.getElementById('search-input').focus(), 100);
+            }
+
+            function performSearch() {
+                const searchTerm = document.getElementById('search-input').value.trim().toLowerCase();
+                const resultsContainer = document.getElementById('search-results');
+
+                if (!searchTerm) {
+                    resultsContainer.innerHTML = '<p style="text-align: center; color: #999; margin: 20px 0;">输入关键词开始搜索</p>';
+                    return;
+                }
+
+                const chat = state.chats[state.activeChatId];
+                if (!chat) {
+                    resultsContainer.innerHTML = '<p style="text-align: center; color: #999; margin: 20px 0;">未找到当前聊天</p>';
+                    return;
+                }
+
+                if (!chat.history || chat.history.length === 0) {
+                    resultsContainer.innerHTML = '<p style="text-align: center; color: #999; margin: 20px 0;">聊天记录为空</p>';
+                    return;
+                }
+
+                // Search through messages
+                const matchingMessages = chat.history.filter(message => {
+                    if (!message) return false;
+                    
+                    // Check multiple possible content properties and ensure it's a string
+                    const rawContent = message.content || message.text || message.message || '';
+                    const searchableText = String(rawContent).toLowerCase();
+                    
+                    return searchableText.includes(searchTerm);
+                });
+
+                if (matchingMessages.length === 0) {
+                    resultsContainer.innerHTML = '<p style="text-align: center; color: #999; margin: 20px 0;">未找到匹配的消息</p>';
+                    return;
+                }
+
+                // Display results
+                resultsContainer.innerHTML = '';
+                
+                matchingMessages.slice(-20).reverse().forEach((message, index) => { // Show last 20 matches, newest first
+                    const resultItem = document.createElement('div');
+                    resultItem.style.cssText = 'padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; border-radius: 6px; margin-bottom: 5px;';
+                    
+                    const rawMessageText = message.content || message.text || message.message || '';
+                    const messageText = String(rawMessageText);
+                    
+                    // Display without highlighting
+                    resultItem.innerHTML = `
+                        <div style="font-size: 12px; color: #666; margin-bottom: 4px;">
+                            ${message.senderName || (message.role === 'user' ? '我' : chat.name)} • ${new Date(message.timestamp).toLocaleString()}
+                        </div>
+                        <div style="font-size: 14px; line-height: 1.4;">
+                            ${messageText}
+                        </div>
+                    `;
+
+                    resultItem.addEventListener('click', () => {
+                        jumpToMessage(message.timestamp);
+                    });
+
+                    resultItem.addEventListener('mouseenter', () => {
+                        resultItem.style.backgroundColor = '#f5f5f5';
+                    });
+
+                    resultItem.addEventListener('mouseleave', () => {
+                        resultItem.style.backgroundColor = 'transparent';
+                    });
+
+                    resultsContainer.appendChild(resultItem);
+                });
+            }
+
+            function jumpToMessage(timestamp) {
+
+
+                // Close search modal
+                document.getElementById('chat-search-modal').classList.remove('visible');
+
+                // Ensure we're in the chat interface screen first
+                const chatScreen = document.getElementById('chat-interface-screen');
+                if (!chatScreen || !chatScreen.classList.contains('active')) {
+
+                    showScreen('chat-interface-screen');
+                    // Wait a moment for the screen to load, then try again
+                    setTimeout(() => jumpToMessage(timestamp), 100);
+                    return;
+                }
+
+                // Find the message in the chat history
+                const chat = state.chats[state.activeChatId];
+                if (!chat) {
+
+                    return;
+                }
+
+                // IMPORTANT: Use filtered history for both search and rendering to match positions
+                const filteredHistory = chat.history.filter(msg => msg.type !== 'meetup_interaction');
+
+                const messageIndex = filteredHistory.findIndex(m => m.timestamp === timestamp);
+                if (messageIndex === -1) {
+
+                    return;
+                }
+
+
+
+                // Calculate how many messages we need to load to show this message
+                const totalMessages = filteredHistory.length;
+                const messagesFromEnd = totalMessages - messageIndex;
+
+
+
+                // Smart loading: load messages in batches until we find the target
+                const messagesContainer = document.getElementById('chat-messages');
+                if (messagesContainer) {
+                    // Clear existing messages
+                    messagesContainer.innerHTML = '';
+
+
+
+                    // Smart: load a reasonable window around the target message
+                    const contextBefore = 25; // Load 25 messages before target
+                    const contextAfter = 50;  // Load 50 messages after target
+
+                    const startIndex = Math.max(0, messageIndex - contextBefore);
+                    const endIndex = Math.min(messageIndex + contextAfter, filteredHistory.length);
+                    const messagesToLoad = endIndex - startIndex;
+
+
+
+                    const messagesToShow = filteredHistory.slice(startIndex, endIndex);
+
+                    // Load messages in smaller chunks to avoid blocking the UI
+                    let loadedCount = 0;
+                    const chunkSize = 50;
+
+                    function loadNextChunk() {
+                        const endIndex = Math.min(loadedCount + chunkSize, messagesToShow.length);
+
+                        for (let i = loadedCount; i < endIndex; i++) {
+                            const msg = messagesToShow[i];
+                            try {
+                                if (msg && typeof msg === 'object' && msg.timestamp) {
+                                    appendMessage(msg, chat, true);
+                                }
+                            } catch (error) {
+                                console.error('Error rendering message:', error, msg);
+                            }
+                        }
+
+                        loadedCount = endIndex;
+
+                        if (loadedCount < messagesToShow.length) {
+                            // Load next chunk after a small delay to avoid blocking UI
+                            setTimeout(loadNextChunk, 10);
+                        } else {
+                            // All messages loaded, now try to scroll
+
+
+                            // Update the rendered count
+                            currentRenderedCount = messagesToLoad;
+
+                            // Add typing indicator
+                            const typingIndicator = document.createElement('div');
+                            typingIndicator.id = 'typing-indicator';
+                            typingIndicator.style.display = 'none';
+                            typingIndicator.textContent = '对方正在输入...';
+                            messagesContainer.appendChild(typingIndicator);
+
+                            // Try to scroll to the message
+                            setTimeout(() => {
+                                const messageElement = document.querySelector(`[data-timestamp="${timestamp}"]`);
+
+
+                                if (messageElement) {
+
+                                    messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    messageElement.style.backgroundColor = '#ffeb3b';
+                                    setTimeout(() => {
+                                        messageElement.style.backgroundColor = '';
+                                    }, 2000);
+                                } else {
+                                    // Try a more flexible search for close matches
+                                    const allElements = document.querySelectorAll('[data-timestamp]');
+
+                                    // Try a more flexible search
+                                    const allTimestamps = Array.from(allElements).map(el => el.dataset.timestamp);
+                                    const closestMatch = allTimestamps.find(ts => Math.abs(parseInt(ts) - parseInt(timestamp)) < 1000);
+                                    if (closestMatch) {
+                                        const closeElement = document.querySelector(`[data-timestamp="${closestMatch}"]`);
+                                        if (closeElement) {
+                                            closeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                            closeElement.style.backgroundColor = '#ffeb3b';
+                                            setTimeout(() => {
+                                                closeElement.style.backgroundColor = '';
+                                            }, 2000);
+                                        }
+                                    }
+                                }
+                            }, 100);
+                        }
+                    }
+
+                    // Start loading the first chunk
+                    loadNextChunk();
+                    return; // Exit early since we're handling scrolling in the callback
+                }
+
+            }
+            // ▲▲▲ Chat Search Functions End ▲▲▲
+
             // ▼▼▼ 【全新】投票功能核心函数 ▼▼▼
 
             /**
@@ -22130,6 +22383,14 @@ ${bulletinsContext}
                 document.getElementById('confirm-share-link-btn').addEventListener('click', sendUserLinkShare);
                 document.getElementById('browser-back-btn').addEventListener('click', closeBrowser);
                 // ▲▲▲ Share Link Event Listeners End ▲▲▲
+
+                // ▼▼▼ Chat Search Event Listeners ▼▼▼
+                document.getElementById('chat-search-btn').addEventListener('click', openChatSearchModal);
+                document.getElementById('close-search-btn').addEventListener('click', () => {
+                    document.getElementById('chat-search-modal').classList.remove('visible');
+                });
+                document.getElementById('search-input').addEventListener('input', performSearch);
+                // ▲▲▲ Chat Search Event Listeners End ▲▲▲
 
                 // ▼▼▼ Location Share Event Listeners ▼▼▼
                 document.getElementById('share-location-btn').addEventListener('click', openLocationShareModal);
