@@ -12788,11 +12788,10 @@ ${worldBookContent}
                             <img src="${currentUrl}" alt="${app.name}">
                             <span>${app.name}</span>
                         </div>
-                        <input type="text" 
-                               id="app-icon-${app.id}" 
-                               value="${currentUrl}" 
-                               placeholder="输入图标URL"
-                               class="app-icon-input">
+                        <input type="file" 
+                               id="app-icon-input-${app.id}" 
+                               accept="image/*"
+                               style="display: none;">
                         <div class="app-icon-actions">
                             <button onclick="updateAppIcon('${app.id}')" class="app-icon-btn primary">
                                 应用
@@ -12807,31 +12806,43 @@ ${worldBookContent}
                 });
             }
 
-            window.updateAppIcon = function (appId) {
-                const input = document.getElementById(`app-icon-${appId}`);
-                const newUrl = input.value.trim();
+            window.updateAppIcon = async function (appId) {
+                // Trigger file picker
+                const fileInput = document.getElementById(`app-icon-input-${appId}`);
+                if (!fileInput) return;
+                
+                // Set up one-time event listener for file selection
+                fileInput.onchange = async (event) => {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    try {
+                        // Compress image with smaller dimensions for app icons (256px max)
+                        const compressedBase64 = await compressImage(file, 256, 0.85);
+                        
+                        // Save to localStorage (same as charm CSS)
+                        localStorage.setItem(`appIcon_${appId}`, compressedBase64);
 
-                if (!newUrl) {
-                    showCustomAlert('错误', '请输入有效的图标URL');
-                    return;
-                }
+                        // Apply to home screen
+                        applyAppIconsToHomeScreen();
 
-                // Save to localStorage (same as charm CSS)
-                localStorage.setItem(`appIcon_${appId}`, newUrl);
+                        // Re-render the customization section to show updated preview
+                        renderAppIconCustomization();
 
-                // Apply to home screen
-                applyAppIconsToHomeScreen();
-
-                // Re-render the customization section to show updated preview
-                renderAppIconCustomization();
-
-                showCustomAlert('成功', '图标已更新');
+                        showCustomAlert('成功', '图标已更新');
+                    } catch (error) {
+                        showCustomAlert('错误', '保存图标失败: ' + error.message);
+                    }
+                    
+                    // Reset file input
+                    event.target.value = '';
+                };
+                
+                // Trigger file picker
+                fileInput.click();
             }
 
             window.resetAppIcon = function (appId, defaultUrl) {
-                const input = document.getElementById(`app-icon-${appId}`);
-                input.value = defaultUrl;
-
                 // Remove from localStorage (same as charm CSS reset)
                 localStorage.removeItem(`appIcon_${appId}`);
 
