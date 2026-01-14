@@ -12343,37 +12343,64 @@ ${worldBookContent}
             async function makeAPIRequest(proxyUrl, apiKey, model, messages, temperature = 0.8) {
                 if (isGoogleGeminiAPI(proxyUrl)) {
 
-                    // Google Gemini API format
-                    const contents = messages.map(msg => {
+                    // WEB IMAGE ANALYSIS FEATURE: Enhanced Gemini API format with vision support
+                    const contents = await Promise.all(messages.map(async msg => {
                         const role = msg.role === 'assistant' ? 'model' : 'user';
-                        let parts = [];
-
-                        // Handle image content (OpenAI format -> Gemini format)
-                        if (Array.isArray(msg.content)) {
-                            for (const item of msg.content) {
-                                if (item.type === 'image_url' && item.image_url?.url) {
-                                    // Extract base64 data and mime type from data URL
-                                    const dataUrl = item.image_url.url;
-                                    const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+                        
+                        // Handle vision analysis for images
+                        if (Array.isArray(msg.content) && msg.content[0]?.type === 'image_url' && msg.isVisionAnalysis) {
+                            try {
+                                const imageUrl = msg.content[0].image_url.url;
+                                let base64Data;
+                                let mimeType;
+                                
+                                // Check if it's already a data URL (from phone upload)
+                                if (imageUrl.startsWith('data:')) {
+                                    const matches = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
                                     if (matches) {
-                                        parts.push({
-                                            inline_data: {
-                                                mime_type: matches[1],
-                                                data: matches[2]
-                                            }
-                                        });
+                                        mimeType = matches[1];
+                                        base64Data = matches[2];
+                                    } else {
+                                        throw new Error('Invalid data URL format');
                                     }
-                                } else if (item.type === 'text' && item.text) {
-                                    parts.push({ text: item.text });
+                                } else {
+                                    // Fetch web image and convert to base64
+                                    const response = await fetch(imageUrl);
+                                    const blob = await response.blob();
+                                    base64Data = await new Promise(resolve => {
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                                        reader.readAsDataURL(blob);
+                                    });
+                                    mimeType = blob.type || "image/jpeg";
                                 }
+                                
+                                return {
+                                    role: role,
+                                    parts: [
+                                        { 
+                                            inlineData: {
+                                                mimeType: mimeType,
+                                                data: base64Data
+                                            }
+                                        }
+                                    ]
+                                };
+                            } catch (error) {
+                                console.error('Failed to process image for Gemini:', error);
+                                return {
+                                    role: role,
+                                    parts: [{ text: "[Image could not be processed for analysis]" }]
+                                };
                             }
-                        } else {
-                            // Regular text content
-                            parts = [{ text: msg.content }];
                         }
-
-                        return { role, parts };
-                    });
+                        
+                        // Handle regular content (text, non-vision images)
+                        return {
+                            role: role,
+                            parts: [{ text: typeof msg.content === 'string' ? msg.content : "[User sent an image]" }]
+                        };
+                    }));
 
 
 
@@ -12441,6 +12468,29 @@ ${worldBookContent}
                 }
             }
             function showNotification(chatId, messageContent) { clearTimeout(notificationTimeout); const chat = state.chats[chatId]; if (!chat) return; const bar = document.getElementById('notification-bar'); document.getElementById('notification-avatar').src = chat.settings.aiAvatar || chat.settings.groupAvatar || defaultAvatar; document.getElementById('notification-content').querySelector('.name').textContent = chat.name; document.getElementById('notification-content').querySelector('.message').textContent = messageContent; const newBar = bar.cloneNode(true); bar.parentNode.replaceChild(newBar, bar); newBar.addEventListener('click', () => { openChat(chatId); newBar.classList.remove('visible'); }); newBar.classList.add('visible'); notificationTimeout = setTimeout(() => { newBar.classList.remove('visible'); }, 4000); }
+
+            // WEB IMAGE ANALYSIS FEATURE: Handle web image URL input and create vision-enabled message
+            async function showWebImageUrlPrompt() {
+                if (!state.activeChatId) return;
+                
+                const imageUrl = await showCustomPrompt("网络图片分析", "请输入图片URL：");
+                if (!imageUrl || !imageUrl.trim()) return;
+                
+                const chat = state.chats[state.activeChatId];
+                // Create message with vision analysis flag
+                const msg = { 
+                    role: 'user', 
+                    content: [{ type: 'image_url', image_url: { url: imageUrl.trim() } }], 
+                    timestamp: Date.now(),
+                    isVisionAnalysis: true // Flag for API processing
+                };
+                
+                chat.history.push(msg);
+                await db.chats.put(chat);
+                appendMessage(msg, chat);
+                renderChatList();
+            }
+            window.showWebImageUrlPrompt = showWebImageUrlPrompt;
 
             function updateClock() { const now = new Date(); const timeString = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }); const dateString = now.toLocaleDateString('zh-CN', { weekday: 'long', month: 'long', day: 'numeric' }); document.getElementById('main-time').textContent = timeString; document.getElementById('status-bar-time').textContent = timeString; document.getElementById('main-date').textContent = dateString; }
 
@@ -15495,6 +15545,16 @@ ${worldBookContent}
                             }
                             if (msg.type === 'waimai_request') return { role: 'user', content: `[系统提示：用户于时间戳 ${msg.timestamp} 发起了外卖代付请求，商品是“${msg.productInfo}”，金额是 ${msg.amount} 元。请你决策并使用 waimai_response 指令回应。]` };
                             if (msg.meaning) return { role: 'user', content: `[用户发送了一个表情，意思是：'${msg.meaning}']` };
+                            // WEB IMAGE ANALYSIS FEATURE: Handle image_url content for vision analysis
+                            if (Array.isArray(msg.content) && msg.content[0]?.type === 'image_url') {
+                                if (msg.isVisionAnalysis) {
+                                    // For vision analysis, pass the image data directly
+                                    return { role: msg.role, content: msg.content, isVisionAnalysis: true };
+                                } else {
+                                    // For regular uploads, convert to text description
+                                    return { role: 'user', content: `[你收到了一张用户上传的图片]` };
+                                }
+                            }
                             return { role: msg.role, content: msg.content };
                         }).filter(Boolean);
 
@@ -23220,7 +23280,7 @@ ${bulletinsContext}
                 });
 
                 document.getElementById('upload-image-btn').addEventListener('click', () => document.getElementById('image-upload-input').click());
-                document.getElementById('image-upload-input').addEventListener('change', async (event) => { const file = event.target.files[0]; if (!file || !state.activeChatId) return; const base64Url = await processImageUpload(file); const chat = state.chats[state.activeChatId]; const msg = { role: 'user', content: [{ type: 'image_url', image_url: { url: base64Url } }], timestamp: Date.now() }; chat.history.push(msg); await db.chats.put(chat); appendMessage(msg, chat); renderChatList(); event.target.value = null; });
+                document.getElementById('image-upload-input').addEventListener('change', async (event) => { const file = event.target.files[0]; if (!file || !state.activeChatId) return; const base64Url = await processImageUpload(file); const chat = state.chats[state.activeChatId]; const msg = { role: 'user', content: [{ type: 'image_url', image_url: { url: base64Url } }], timestamp: Date.now(), isVisionAnalysis: true }; chat.history.push(msg); await db.chats.put(chat); appendMessage(msg, chat); renderChatList(); event.target.value = null; });
                 document.getElementById('voice-message-btn').addEventListener('click', async () => { if (!state.activeChatId) return; const text = await showCustomPrompt("发送语音", "请输入你想说的内容："); if (text && text.trim()) { const chat = state.chats[state.activeChatId]; const msg = { role: 'user', type: 'voice_message', content: text.trim(), timestamp: Date.now() }; chat.history.push(msg); await db.chats.put(chat); appendMessage(msg, chat); renderChatList(); } });
                 document.getElementById('send-photo-btn').addEventListener('click', async () => { if (!state.activeChatId) return; const description = await showCustomPrompt("发送照片", "请用文字描述您要发送的照片："); if (description && description.trim()) { const chat = state.chats[state.activeChatId]; const msg = { role: 'user', type: 'user_photo', content: description.trim(), timestamp: Date.now() }; chat.history.push(msg); await db.chats.put(chat); appendMessage(msg, chat); renderChatList(); } });
 
