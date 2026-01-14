@@ -11109,6 +11109,7 @@
                 const timestampEl = document.createElement('span');
                 timestampEl.className = 'timestamp';
                 timestampEl.textContent = formatTimestamp(message.timestamp);
+                timestampEl.style.display = 'none'; // Hide timestamp from UI
 
                 // Get avatar (use meetup session chat context or fallback to activeChatId)
                 let avatarSrc;
@@ -11466,6 +11467,35 @@ ${worldBookContent}
                     // Don't forget the last accumulated text
                     if (combinedTextContent) {
                         combinedMessages.push({ type: 'text', content: combinedTextContent });
+                    }
+
+                    // Simple content extraction function for fallback
+                    function tryExtractUsableContent(messagesArray) {
+                        let extractedText = '';
+                        
+                        for (const msg of messagesArray) {
+                            if (msg && msg.content && typeof msg.content === 'string') {
+                                const cleanContent = msg.content.trim();
+                                if (cleanContent.length > 0) {
+                                    extractedText += (extractedText ? ' ' : '') + cleanContent;
+                                }
+                            } else if (typeof msg === 'string' && msg.trim().length > 0) {
+                                // Handle case where parseAiResponse returns plain strings
+                                extractedText += (extractedText ? ' ' : '') + msg.trim();
+                            }
+                        }
+                        
+                        return extractedText.trim();
+                    }
+
+                    // Check if we have any messages to display
+                    if (combinedMessages.length === 0) {
+                        const extractedContent = tryExtractUsableContent(messagesArray);
+                        if (extractedContent && extractedContent.length > 10) {
+                            combinedMessages.push({ type: 'text', content: extractedContent });
+                        } else {
+                            throw new Error('AI响应格式错误，无法显示消息。请检查API配置或重试。');
+                        }
                     }
 
                     let messageTimestamp = Date.now();
@@ -12083,6 +12113,7 @@ ${worldBookContent}
                 const timestampEl = document.createElement('span');
                 timestampEl.className = 'timestamp';
                 timestampEl.textContent = formatTimestamp(message.timestamp);
+                timestampEl.style.display = 'none'; // Hide timestamp from UI
 
                 // Get avatar - try multiple sources for chat context
                 let avatarSrc;
