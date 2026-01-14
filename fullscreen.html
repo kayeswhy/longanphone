@@ -15192,7 +15192,7 @@ ${worldBookContent}
                     let meetupContext = '';
                     if (window.activeMeetupSession && window.activeMeetupSession.chatId === chatId) {
                         const session = window.activeMeetupSession;
-                        meetupContext = `\n\n# 当前见面背景信息\n-   **背景**: 你和用户正在进行一次见面活动。\n-   **见面地点**: ${session.location}\n-   **见面主题**: ${session.title}\n-   **见面阶段**: ${session.phase || 'initial'}\n-   **重要**: 这只是背景信息。你现在在聊天界面中，应该像平常一样发送文字消息，不要使用括号描述行为。\n`;
+                        meetupContext = `\n\n# 当前见面背景信息\n-   **背景**: 你和用户正在进行一次见面活动。\n-   **见面地点**: ${session.location}\n-   **见面主题**: ${session.title}\n-   **见面阶段**: ${session.phase || 'initial'}\n-   **【【【重要：模式重置】】】**: 这只是背景信息。你现在在QQ聊天界面中，【必须】像平常一样发送3-5条短消息，【绝对禁止】使用括号描述行为。\n`;
                     }
                     let systemPrompt, messagesPayload;
                     const maxMemory = parseInt(chat.settings.maxMemory) || 10;
@@ -15309,7 +15309,7 @@ ${chat.settings.aiPersona}
     *   **优秀范例**: 先自然地说“对了，我得去给我的花浇水了，它们快渴死了。”，然后再发送更新状态的相关指令。
 当你的任何**文本回复**中，描述了你自己的**状态或行为发生了变化**时（例如，你说出“我刚洗完澡”、“我准备出门了”、“我在看书”这类话）在**同一次回复**的JSON数组中，【必须紧随其后】地加上一条 \`update_status\` 指令，来从程序层面同步你刚刚描述的状态。
 3.  **【【【格式铁律】】】**: 你的回复【必须】是一个JSON数组格式的字符串。数组中的【每一个元素都必须是一个带有type字段的JSON对象】。
-4.  **【对话节奏】**: 模拟真人的聊天习惯，你可以一次性生成多条短消息，3-5条为佳。
+4.  **【【【QQ对话节奏】】】**: 模拟真人的QQ聊天习惯，你【必须】一次性生成3-5条短消息。【绝对禁止】长段落或括号行为。
 5.  **【禁止出戏】**: 绝不能透露你是AI、模型，或提及“扮演”、“生成”等词语。
 6.  **情景感知**: 你需要感知当前的时间(${currentTime})、我们正在一起听的歌、以及你的人设和世界观。
     - **当我们在“一起听歌”时**，你会知道当前播放的歌曲和整个播放列表。你可以根据对话内容或氛围，【主动切换】到播放列表中的另一首歌。
