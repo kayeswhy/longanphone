@@ -12495,7 +12495,17 @@ ${worldBookContent}
             function updateClock() { const now = new Date(); const timeString = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }); const dateString = now.toLocaleDateString('zh-CN', { weekday: 'long', month: 'long', day: 'numeric' }); document.getElementById('main-time').textContent = timeString; document.getElementById('status-bar-time').textContent = timeString; document.getElementById('main-date').textContent = dateString; }
 
             function parseAiResponse(content) {
+                // Safety check for null/undefined/empty content
+                if (!content || typeof content !== 'string') {
+                    return [];
+                }
+                
                 const trimmedContent = content.trim();
+                
+                // Check for empty content after trimming
+                if (trimmedContent.length === 0) {
+                    return [];
+                }
 
                 // 1. 尝试作为完整的JSON数组解析 (最理想情况)
                 if (trimmedContent.startsWith('[') && trimmedContent.endsWith(']')) {
@@ -15288,6 +15298,33 @@ ${worldBookContent}
                         const decisionPrompt = `# 你的任务\n你现在是角色“${chat.name}”。用户之前被你拉黑了，现在TA向你发送了好友申请，希望和好。\n\n# 供你决策的上下文信息:\n- **你的角色设定**: ${chat.settings.aiPersona}\n- **用户发送的申请理由**: “${chat.relationship.applicationReason}”\n- **被拉黑前的最后对话摘要**:\n${contextSummary || "（无有效对话记录）"}\n\n# 你的唯一指令\n根据以上所有信息，你【必须】做出决定，并给出符合你人设的理由。你的回复【必须且只能】是一个JSON对象，格式如下:\n{"decision": "accept", "reason": "..."}\n或\n{"decision": "reject", "reason": "..."}`;
                         const messagesForDecision = [{ role: 'user', content: decisionPrompt }];
                         const data = await makeAPIRequest(proxyUrl, apiKey, model, messagesForDecision, 0.8);
+                        
+                        // Check if API response is valid
+                        if (!data) {
+                            throw new Error('API没有返回任何数据，请检查网络连接和代理设置');
+                        }
+                        
+                        if (!data.choices) {
+                            throw new Error(`API响应格式错误：缺少choices字段。响应内容：${JSON.stringify(data).substring(0, 200)}...`);
+                        }
+                        
+                        if (data.choices.length === 0) {
+                            throw new Error('API返回了空的choices数组，可能是模型不可用或请求被拒绝');
+                        }
+                        
+                        if (!data.choices[0]) {
+                            throw new Error('API响应中第一个choice为空');
+                        }
+                        
+                        if (!data.choices[0].message) {
+                            throw new Error(`API响应格式错误：choice缺少message字段。Choice内容：${JSON.stringify(data.choices[0])}`);
+                        }
+                        
+                        if (!data.choices[0].message.content) {
+                            const tokens = data.usage ? `(${data.usage.prompt_tokens} prompt tokens, ${data.usage.completion_tokens} completion tokens)` : '';
+                            throw new Error(`API没有生成任何内容 ${tokens}。可能是提示过长或内容被过滤，请尝试缩短对话历史或检查API设置。`);
+                        }
+                        
                         const rawContent = data.choices[0].message.content.replace(/^```json\s*/, '').replace(/```$/, '').trim();
                         const decisionObj = JSON.parse(rawContent);
                         if (decisionObj.decision === 'accept') {
@@ -15590,7 +15627,36 @@ ${worldBookContent}
                     }
 
                     const data = await makeAPIRequest(proxyUrl, apiKey, model, [{ role: 'system', content: systemPrompt }, ...messagesPayload], 0.8);
+                    
+                    // Check if API response is valid and provide specific error messages
+                    if (!data) {
+                        throw new Error('API没有返回任何数据，请检查网络连接和代理设置');
+                    }
+                    
+                    if (!data.choices) {
+                        throw new Error(`API响应格式错误：缺少choices字段。响应内容：${JSON.stringify(data).substring(0, 200)}...`);
+                    }
+                    
+                    if (data.choices.length === 0) {
+                        throw new Error('API返回了空的choices数组，可能是模型不可用或请求被拒绝');
+                    }
+                    
+                    if (!data.choices[0]) {
+                        throw new Error('API响应中第一个choice为空');
+                    }
+                    
+                    if (!data.choices[0].message) {
+                        throw new Error(`API响应格式错误：choice缺少message字段。Choice内容：${JSON.stringify(data.choices[0])}`);
+                    }
+
                     const aiResponseContent = data.choices[0].message.content;
+
+                    // Check if response content exists
+                    if (!aiResponseContent || (typeof aiResponseContent === 'string' && aiResponseContent.trim().length === 0)) {
+                        const tokens = data.usage ? `(${data.usage.prompt_tokens} prompt tokens, ${data.usage.completion_tokens} completion tokens)` : '';
+                        throw new Error(`API没有生成任何内容 ${tokens}。可能是提示过长或内容被过滤，请尝试缩短对话历史或检查API设置。`);
+                    }
+
                     console.log(`AI '${chat.name}' 的原始回复:`, aiResponseContent);
 
                     chat.history = chat.history.filter(msg => !msg.isTemporary);
