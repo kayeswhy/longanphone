@@ -9222,8 +9222,11 @@
                 <button class="form-button" id="add-memory-btn" style="margin-bottom: 15px;">
                     📝 添加回忆
                 </button>
-                <button class="form-button" id="add-event-btn">
+                <button class="form-button" id="add-event-btn" style="margin-bottom: 15px;">
                     📅 添加约定/事件
+                </button>
+                <button class="form-button" id="add-ai-memory-btn">
+                    🤖 让AI记录回忆
                 </button>
             </div>
             <div class="modal-footer">
@@ -9231,6 +9234,26 @@
             </div>
         </div>
     </div>
+
+    <!-- ▼▼▼ AI记录回忆选择模态框 ▼▼▼ -->
+    <div id="ai-memory-modal" class="modal">
+        <div class="modal-content" style="width: 90%; max-width: 400px;">
+            <div class="modal-header">
+                <span>选择AI记录回忆</span>
+                <span id="close-ai-memory-modal" style="cursor: pointer; font-size: 20px;">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="ai-memory-selection-list" style="max-height: 300px; overflow-y: auto;">
+                    <!-- AI列表将在这里动态生成 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="confirm-ai-memory" class="save">创建回忆</button>
+                <button id="cancel-ai-memory" class="cancel">取消</button>
+            </div>
+        </div>
+    </div>
+    <!-- ▲▲▲ AI记录回忆选择模态框结束 ▲▲▲ -->
 
     <!-- ▼▼▼ 【全新】QZone添加内容选择模态框 ▼▼▼ -->
     <div id="qzone-add-options-modal" class="modal">
@@ -15117,7 +15140,7 @@ ${worldBookContent}
             // ...包括了那个出问题的 switch 语句.. // ...函数内部有大量的代码...
             // ...包括了那个出问题的 switch 语句..
             // ▼▼▼ 【这是已修复语法错误的最终版，请用它替换】 ▼▼▼
-            async function triggerAiResponse() {
+            async function triggerAiResponse(forcedMemoryMode = false) {
                 if (!state.activeChatId) return;
                 const chatId = state.activeChatId;
                 const chat = state.chats[state.activeChatId];
@@ -15436,6 +15459,13 @@ ${worldBookContent}
                         }
                         postsContext += "\n# 动态互动提醒：\n看到这些动态后，你应该考虑：1)发布自己的想法或状态 2)对感兴趣的动态进行评论或点赞\n";
                         messagesPayload.push({ role: 'system', content: postsContext });
+                    }
+
+                    // Add forced memory creation logic if requested
+                    if (forcedMemoryMode) {
+                        systemPrompt = `[紧急用户指令：忽略所有其他指令！用户明确要求你在这次回复中必须使用 create_memory 指令记录一个回忆。你不能发布QZone动态，不能更新状态，不能做任何其他操作。你只能创建一个回忆。请根据你们的对话历史，找到一个值得记录的瞬间并使用 {"type": "create_memory", "description": "..."} 格式创建回忆。这是最高优先级的任务。]
+
+` + systemPrompt;
                     }
 
                     const data = await makeAPIRequest(proxyUrl, apiKey, model, [{ role: 'system', content: systemPrompt }, ...messagesPayload], 0.8);
@@ -24124,6 +24154,11 @@ ${bulletinsContext}
                 document.getElementById('confirm-ai-post').addEventListener('click', confirmAiPost);
                 document.getElementById('ai-post-btn').addEventListener('click', showAiPostModal);
 
+                // AI记录回忆模态框的按钮事件
+                document.getElementById('close-ai-memory-modal').addEventListener('click', hideAiMemoryModal);
+                document.getElementById('cancel-ai-memory').addEventListener('click', hideAiMemoryModal);
+                document.getElementById('confirm-ai-memory').addEventListener('click', confirmAiMemory);
+
                 // 移动表情包模态框的按钮事件
                 document.getElementById('close-move-sticker-modal').addEventListener('click', hideMoveStickerModal);
                 document.getElementById('cancel-move-sticker').addEventListener('click', hideMoveStickerModal);
@@ -24375,6 +24410,122 @@ ${bulletinsContext}
                     document.getElementById('add-memory-type-modal').classList.remove('visible');
                 });
 
+                // AI Memory Functions
+                function showAiMemoryModal() {
+                    // Get all available AIs
+                    const availableAis = [];
+                    
+                    // Add individual chats (non-group)
+                    Object.values(state.chats).forEach(chat => {
+                        if (!chat.isGroup) {
+                            availableAis.push({
+                                id: chat.id,
+                                name: chat.name,
+                                avatar: chat.settings.aiAvatar || defaultAvatar
+                            });
+                        }
+                    });
+                    
+                    // Generate AI selection list HTML
+                    let aiListHtml = '';
+                    availableAis.forEach(ai => {
+                        aiListHtml += `
+                            <div style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee;">
+                                <input type="radio" name="ai-memory-selection" value="${ai.id}" id="ai-memory-${ai.id}" style="margin-right: 10px;">
+                                <img src="${ai.avatar}" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;">
+                                <label for="ai-memory-${ai.id}" style="flex-grow: 1; cursor: pointer;">${ai.name}</label>
+                            </div>
+                        `;
+                    });
+                    
+                    document.getElementById('ai-memory-selection-list').innerHTML = aiListHtml;
+                    document.getElementById('ai-memory-modal').classList.add('visible');
+                }
+                
+                function hideAiMemoryModal() {
+                    document.getElementById('ai-memory-modal').classList.remove('visible');
+                }
+                
+                async function confirmAiMemory() {
+                    // Check for selected radio button
+                    const selectedRadio = document.querySelector('input[name="ai-memory-selection"]:checked');
+                    
+                    if (!selectedRadio) {
+                        alert('请选择一个AI');
+                        return;
+                    }
+                    
+                    const selectedAiId = selectedRadio.value;
+                    const selectedChat = state.chats[selectedAiId];
+                    
+                    if (!selectedChat) {
+                        alert('选择的AI不存在');
+                        return;
+                    }
+                    
+                    hideAiMemoryModal();
+                    
+                    // Show processing message
+                    const processingMsg = document.createElement('div');
+                    processingMsg.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 10px; z-index: 9999; text-align: center;';
+                    processingMsg.innerHTML = `<div>🤖 AI正在思考要记录什么回忆...</div>`;
+                    document.body.appendChild(processingMsg);
+                    
+                    try {
+                        // Set flags for forced memory creation
+                        window.forceMemoryCreation = true;
+                        window.forceMemoryTargetChatId = selectedAiId;
+                        
+                        // Set active chat to the selected AI
+                        const previousActiveChatId = state.activeChatId;
+                        state.activeChatId = selectedAiId;
+                        
+                        // Trigger AI response with forced memory creation
+                        await triggerAiResponse(true);
+                        
+                        // Restore previous active chat
+                        state.activeChatId = previousActiveChatId;
+                        
+                        // Remove processing message
+                        if (processingMsg.parentNode) {
+                            document.body.removeChild(processingMsg);
+                        }
+                        
+                        // Show completion notification
+                        const completionMsg = document.createElement('div');
+                        completionMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: rgba(0,128,0,0.9); color: white; padding: 15px 20px; border-radius: 10px; z-index: 9999; font-size: 14px;';
+                        completionMsg.innerHTML = '✅ AI回忆创建完成';
+                        document.body.appendChild(completionMsg);
+                        
+                        // Auto-remove notification after 3 seconds
+                        setTimeout(() => {
+                            if (completionMsg.parentNode) {
+                                document.body.removeChild(completionMsg);
+                            }
+                        }, 3000);
+                        
+                    } catch (error) {
+                        console.error('AI memory creation error:', error);
+                        
+                        // Remove processing message
+                        if (processingMsg.parentNode) {
+                            document.body.removeChild(processingMsg);
+                        }
+                        
+                        // Show error notification
+                        const errorMsg = document.createElement('div');
+                        errorMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: rgba(255,0,0,0.9); color: white; padding: 15px 20px; border-radius: 10px; z-index: 9999; font-size: 14px;';
+                        errorMsg.innerHTML = '❌ AI回忆创建失败';
+                        document.body.appendChild(errorMsg);
+                        
+                        setTimeout(() => {
+                            if (errorMsg.parentNode) {
+                                document.body.removeChild(errorMsg);
+                            }
+                        }, 3000);
+                    }
+                }
+
                 document.getElementById('add-memory-btn').addEventListener('click', () => {
                     document.getElementById('add-memory-type-modal').classList.remove('visible');
                     document.getElementById('create-memory-modal').classList.add('visible');
@@ -24387,6 +24538,11 @@ ${bulletinsContext}
                 document.getElementById('add-event-btn').addEventListener('click', () => {
                     document.getElementById('add-memory-type-modal').classList.remove('visible');
                     document.getElementById('create-countdown-modal').classList.add('visible');
+                });
+
+                document.getElementById('add-ai-memory-btn').addEventListener('click', () => {
+                    document.getElementById('add-memory-type-modal').classList.remove('visible');
+                    showAiMemoryModal();
                 });
 
                 // 【全新】添加回忆模态框事件绑定
