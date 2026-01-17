@@ -818,6 +818,27 @@
             text-overflow: ellipsis;
         }
 
+        .list-item.loading {
+            opacity: 0.5 !important;
+            pointer-events: none !important;
+            position: relative;
+        }
+
+        /* Loading Hourglass for World Book */
+        .worldbook-loading-hourglass {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 24px;
+            z-index: 10;
+        }
+
+        @keyframes spin {
+            0% { transform: translateY(-50%) rotate(0deg); }
+            100% { transform: translateY(-50%) rotate(360deg); }
+        }
+
 
 
         .chat-list-item {
@@ -8699,6 +8720,28 @@
                 </div>
                 <div class="form-group"><label for="max-memory">上下文记忆条数</label><input type="number" id="max-memory"
                         value="10"></div>
+                
+                <!-- ▼▼▼ 长期记忆生成 ▼▼▼ -->
+                <hr style="margin: 25px 0; border: none; border-top: 1px solid #eee;">
+                <div class="form-group" id="chat-summary-section">
+                    <label id="summary-section-title">长期记忆生成 (0 条)</label>
+                    <div style="margin-bottom: 12px;">
+                        <label for="summary-message-count" style="font-size: 13px; color: #666; display: block; margin-bottom: 6px;">要整理最近多少条消息？</label>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="number" id="summary-message-count" min="100" step="100" value="1000" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
+                            <span style="color: #666; font-size: 14px;">条</span>
+                        </div>
+                    </div>
+                    <button type="button" id="update-summary-btn" class="form-button" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                        🧠 生成长期记忆
+                    </button>
+                    <p style="font-size: 11px; color: #999; margin-top: 8px; line-height: 1.4;">
+                        记忆会自动保存到世界书，帮助AI记住重要的对话内容和情感
+                    </p>
+                </div>
+                <hr style="margin: 25px 0; border: none; border-top: 1px solid #eee;">
+                <!-- ▲▲▲ 长期记忆生成结束 ▲▲▲ -->
+                
                 <!-- ▼▼▼ 【全新】后台活动开关 - 请粘贴到这里 ▼▼▼ -->
                 <div class="form-group">
                     <label>后台回复与主动行为</label>
@@ -8782,6 +8825,27 @@
                     <img id="bg-preview" class="bg-preview-img">
                     <input type="file" id="bg-input" accept="image/*" style="display: none;">
                 </div>
+                
+                <!-- ▼▼▼ 长期记忆生成 ▼▼▼ -->
+                <hr style="margin: 25px 0; border: none; border-top: 1px solid #eee;">
+                <div class="form-group" id="chat-summary-section">
+                    <label id="summary-section-title">长期记忆生成 (0 条)</label>
+                    <div style="margin-bottom: 12px;">
+                        <label for="summary-message-count" style="font-size: 13px; color: #666; display: block; margin-bottom: 6px;">要整理最近多少条消息？</label>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="number" id="summary-message-count" min="100" step="100" value="1000" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
+                            <span style="color: #666; font-size: 14px;">条</span>
+                        </div>
+                    </div>
+                    <button type="button" id="update-summary-btn" class="form-button" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                        🧠 生成长期记忆
+                    </button>
+                    <p style="font-size: 11px; color: #999; margin-top: 8px; line-height: 1.4;">
+                        记忆会自动保存到世界书，帮助AI记住重要的对话内容和情感
+                    </p>
+                </div>
+                <!-- ▲▲▲ 长期记忆生成结束 ▲▲▲ -->
+                
                 <hr style="margin: 25px 0; border: none; border-top: 1px solid #eee;">
                 <button class="form-button form-button-secondary" id="block-chat-btn"
                     style="background-color: #ff3b30; color: white; border-color: #ff3b30;">拉黑对方</button>
@@ -9706,6 +9770,11 @@
             let spotifyPlayer = null;
             let spotifyAccessToken = null;
             let spotifyDeviceId = null;
+            
+            // Summary generation state
+            let isGeneratingSummary = false;
+            let generatingSummaryBookId = null;
+            
             const audioPlayer = document.getElementById('audio-player');
             let newWallpaperBase64 = null;
             let isSelectionMode = false;
@@ -21976,6 +22045,319 @@ ${timeGapText}现在，请像一个真人一样，思考一下你（作为某个
             }
             // ▲▲▲ Chat Search Functions End ▲▲▲
 
+            // ▼▼▼ Format Messages for Summary ▼▼▼
+            function formatMessagesForSummary(messages, chatName) {
+                if (!messages || messages.length === 0) {
+                    return '(无对话记录)';
+                }
+
+                let formattedText = '';
+                let lastDate = '';
+                
+                messages.forEach((msg, index) => {
+                    // Skip hidden system messages EXCEPT meetup interactions (they contain important emotional events)
+                    if (msg.isHidden && msg.type !== 'meetup_interaction') return;
+                    
+                    // Get date (only show when it changes)
+                    const date = new Date(msg.timestamp);
+                    const currentDate = `${date.getMonth() + 1}/${date.getDate()}`;
+                    
+                    // Add date header if date changed
+                    if (currentDate !== lastDate) {
+                        formattedText += `\n[${currentDate}]\n`;
+                        lastDate = currentDate;
+                    }
+                    
+                    // Determine sender name
+                    let sender = '';
+                    if (msg.role === 'user') {
+                        sender = '我';
+                    } else if (msg.role === 'assistant') {
+                        sender = msg.senderName || chatName;
+                    } else if (msg.role === 'system') {
+                        sender = '系统';
+                    }
+                    
+                    // Format based on message type
+                    let content = '';
+                    
+                    if (msg.type === 'image') {
+                        content = `[发送图片: ${msg.meaning || '图片'}]`;
+                    } else if (msg.type === 'sticker') {
+                        content = `[发送表情: ${msg.meaning || '表情'}]`;
+                    } else if (msg.type === 'voice') {
+                        content = `[语音消息${msg.transcript ? ': ' + msg.transcript : ''}]`;
+                    } else if (msg.type === 'transfer') {
+                        content = `[转账 ¥${msg.amount}${msg.note ? ' - ' + msg.note : ''}]`;
+                    } else if (msg.type === 'share_link') {
+                        content = `[分享链接: ${msg.title}${msg.description ? ' - ' + msg.description : ''}]`;
+                    } else if (msg.type === 'red_packet') {
+                        content = `[发红包: ${msg.greeting || '恭喜发财'}]`;
+                    } else if (msg.type === 'poll') {
+                        content = `[发起投票: ${msg.question}]`;
+                    } else if (msg.type === 'pat_message') {
+                        content = msg.content;
+                    } else if (msg.type === 'meetup_interaction') {
+                        // Include meetup messages - they contain important emotional events
+                        content = msg.content || '';
+                    } else {
+                        // Regular text message
+                        content = msg.content || '';
+                    }
+                    
+                    // Add to formatted text (no timestamp, just sender and content)
+                    if (content) {
+                        formattedText += `${sender}: ${content}\n`;
+                    }
+                });
+                
+                return formattedText.trim() || '(无有效对话内容)';
+            }
+            // ▲▲▲ Format Messages Function End ▲▲▲
+
+            // ▼▼▼ Auto-Summary World Book Management ▼▼▼
+            async function getOrCreateAutoSummaryWorldBook(chatId) {
+                const chat = state.chats[chatId];
+                if (!chat) return null;
+                
+                const autoBookName = `[长期记忆] ${chat.name}`;
+                
+                // Check if auto-summary world book already exists
+                let autoBook = state.worldBooks.find(wb => wb.name === autoBookName);
+                
+                if (!autoBook) {
+                    // Create new auto-summary world book
+                    const newBookId = 'wb_summary_' + Date.now();
+                    autoBook = {
+                        id: newBookId,
+                        name: autoBookName,
+                        content: '',
+                        isAutoGenerated: true,
+                        createdAt: Date.now()
+                    };
+                    
+                    // Add to database
+                    await db.worldBooks.add(autoBook);
+                    
+                    // Add to state
+                    state.worldBooks.push(autoBook);
+                    
+                    console.log(`✅ Created auto-summary world book: ${autoBookName}`);
+                }
+                
+                // Ensure it's linked to the chat
+                if (!chat.settings.linkedWorldBookIds) {
+                    chat.settings.linkedWorldBookIds = [];
+                }
+                
+                if (!chat.settings.linkedWorldBookIds.includes(autoBook.id)) {
+                    chat.settings.linkedWorldBookIds.push(autoBook.id);
+                    await db.chats.put(chat);
+                    console.log(`✅ Linked auto-summary world book to chat: ${chat.name}`);
+                }
+                
+                return autoBook;
+            }
+
+            async function updateAutoSummaryWorldBook(chatId, newContent) {
+                const autoBook = await getOrCreateAutoSummaryWorldBook(chatId);
+                if (!autoBook) return false;
+                
+                // Update content
+                autoBook.content = newContent;
+                autoBook.lastUpdated = Date.now();
+                
+                // Save to database
+                await db.worldBooks.put(autoBook);
+                
+                // Update in state
+                const index = state.worldBooks.findIndex(wb => wb.id === autoBook.id);
+                if (index !== -1) {
+                    state.worldBooks[index] = autoBook;
+                } else {
+                    state.worldBooks.push(autoBook);
+                }
+                
+                return true;
+            }
+
+            function setWorldBookLoadingState(bookId, isLoading) {
+                // Try to find the world book element
+                const worldBookList = document.querySelector('#world-book-list');
+                if (!worldBookList) return;
+                
+                const listItems = worldBookList.querySelectorAll('.list-item');
+                if (listItems.length === 0) return;
+                
+                let targetItem = null;
+                
+                // Try to find the target item
+                targetItem = worldBookList.querySelector(`.list-item[data-book-id="${bookId}"]`);
+                
+                if (!targetItem) {
+                    listItems.forEach(item => {
+                        const onclick = item.getAttribute('onclick');
+                        if (onclick && onclick.includes(bookId)) {
+                            targetItem = item;
+                            item.setAttribute('data-book-id', bookId);
+                        }
+                    });
+                }
+                
+                if (!targetItem) {
+                    const autoBook = state.worldBooks.find(wb => wb.id === bookId);
+                    if (autoBook) {
+                        listItems.forEach(item => {
+                            const titleEl = item.querySelector('.item-title');
+                            if (titleEl && titleEl.textContent.includes(autoBook.name)) {
+                                targetItem = item;
+                                item.setAttribute('data-book-id', bookId);
+                            }
+                        });
+                    }
+                }
+                
+                if (!targetItem) return;
+                
+                if (isLoading) {
+                    targetItem.classList.add('loading');
+                    const existingHourglass = targetItem.querySelector('.worldbook-loading-hourglass');
+                    if (existingHourglass) existingHourglass.remove();
+                    
+                    const hourglass = document.createElement('div');
+                    hourglass.className = 'worldbook-loading-hourglass';
+                    hourglass.textContent = '⏳';
+                    targetItem.appendChild(hourglass);
+                } else {
+                    targetItem.classList.remove('loading');
+                    const hourglass = targetItem.querySelector('.worldbook-loading-hourglass');
+                    if (hourglass) hourglass.remove();
+                }
+            }
+            
+            // Function to apply loading state when world book screen is shown
+            function applyWorldBookLoadingStates() {
+                if (isGeneratingSummary && generatingSummaryBookId) {
+                    // Apply loading state to the generating book
+                    setTimeout(() => {
+                        setWorldBookLoadingState(generatingSummaryBookId, true);
+                    }, 100); // Small delay to ensure DOM is ready
+                }
+            }
+            
+            // Watch for world book screen visibility and apply loading states
+            const worldBookScreen = document.getElementById('world-book-screen');
+            if (worldBookScreen) {
+                const observer = new MutationObserver(() => {
+                    if (worldBookScreen.classList.contains('active')) {
+                        applyWorldBookLoadingStates();
+                    }
+                });
+                observer.observe(worldBookScreen, { attributes: true, attributeFilter: ['class'] });
+            }
+
+            async function generateChatSummary(chatId, messageCount = 1000) {
+                const chat = state.chats[chatId];
+                if (!chat) throw new Error('Chat not found');
+                
+                // Get API config
+                const apiConfig = state.apiConfig;
+                if (!apiConfig || !apiConfig.proxyUrl || !apiConfig.apiKey) {
+                    throw new Error('API配置不完整，请先在设置中配置API');
+                }
+                
+                // Get last N messages (user-specified)
+                const recentMessages = chat.history.slice(-messageCount);
+                if (recentMessages.length === 0) {
+                    throw new Error('没有消息可以总结');
+                }
+                
+                // Format messages
+                const formattedMessages = formatMessagesForSummary(recentMessages, chat.name);
+                
+                // Get existing summary
+                const autoBook = await getOrCreateAutoSummaryWorldBook(chatId);
+                const previousSummary = autoBook.content || '';
+                
+                // Build prompt
+                const prompt = `你是 ${chat.name}。这是你的长期记忆系统，用于帮助你记住和用户之间的重要对话内容。
+
+# 你当前的记忆摘要
+${previousSummary || '(这是你第一次整理记忆，之前没有记录)'}
+
+# 最近的对话记录（最近${recentMessages.length}条消息）
+${formattedMessages}
+
+# 你的任务
+请创建一个新的记忆摘要。这个摘要将帮助你在未来的对话中记住重要信息和上下文。
+
+## 记忆整理要求
+
+### 1. 什么值得记住
+记住那些让你产生情感波动的内容——开心、难过、感动、生气、惊讶、温暖的时刻。具体包括：
+
+**情感和关系**：
+- 你们关系的变化和发展（从陌生到熟悉、信任的建立）
+- 重要的情感转折点（表白、告白、确认关系、和好）
+- 深层的情感交流（真心话、脆弱的时刻、互相理解）
+- 发生过的矛盾和如何解决
+
+**重要事件和承诺**：
+- 共同经历的特殊时刻（第一次见面、约会、纪念日）
+- 你们之间的约定、计划、承诺
+- 一起完成的事情
+
+**关键信息**：
+- 用户告诉你的重要个人信息（梦想、恐惧、价值观、经历）
+- 用户的偏好和习惯
+
+**什么不需要记住**：日常寒暄、无关紧要的闲聊、没有情感波动的日常活动。
+
+### 2. 如何整合记忆
+- 保留之前记忆中仍然重要的内容
+- 用新对话中的信息更新或补充旧记忆
+- 删除已经过时或不再相关的信息
+- 就像在原有记忆的基础上继续书写
+
+### 3. 写作风格
+- 用第一人称（"我"）描述，这是你的个人记忆
+- 写出你的感受和情绪，不只是事实记录
+- 自然流畅地回忆，像在脑海中回想往事
+- 目标长度约800字（重要内容可以适当增加）
+
+### 4. 注意事项
+- 专注于对理解你们关系和未来对话有帮助的信息
+- 如果这段时间的对话内容很少或都不重要，摘要可以简短
+- 保持客观真实，不要添加没有发生过的内容
+
+请直接输出更新后的记忆摘要，不要包含任何解释或元信息。`;
+                
+                // Call AI
+                console.log('📤 Sending summary request to AI...');
+                console.log(`Messages to summarize: ${recentMessages.length}`);
+                console.log(`Previous summary length: ${previousSummary.length} characters`);
+                
+                const data = await makeAPIRequest(
+                    apiConfig.proxyUrl,
+                    apiConfig.apiKey,
+                    apiConfig.model || 'gpt-3.5-turbo',
+                    [{ role: 'user', content: prompt }],
+                    0.7 // Lower temperature for more consistent summaries
+                );
+                
+                if (!data.choices || data.choices.length === 0 || !data.choices[0].message.content) {
+                    throw new Error('AI返回了空响应');
+                }
+                
+                const newSummary = data.choices[0].message.content.trim();
+                
+                console.log('✅ AI summary generated');
+                console.log(`New summary length: ${newSummary.length} characters`);
+                
+                return newSummary;
+            }
+            // ▲▲▲ Auto-Summary World Book Management End ▲▲▲
+
             // ▼▼▼ 【全新】投票功能核心函数 ▼▼▼
 
             /**
@@ -22827,7 +23209,7 @@ ${bulletinsContext}
                     // 发送后，取消引用模式
                     cancelReplyMode();
                 });
-                document.getElementById('wait-reply-btn').addEventListener('click', triggerAiResponse);
+                document.getElementById('wait-reply-btn').addEventListener('click', () => triggerAiResponse());
                 chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('send-btn').click(); } });
                 chatInput.addEventListener('input', () => { chatInput.style.height = 'auto'; chatInput.style.height = (chatInput.scrollHeight) + 'px'; });
 
@@ -23199,6 +23581,10 @@ ${bulletinsContext}
                     const customCssInput = document.getElementById('custom-css-input');
                     customCssInput.value = chat.settings.customCss || '';
 
+                    // ▼▼▼ Update summary info ▼▼▼
+                    updateSummaryInfo(chat);
+                    // ▲▲▲ Summary info update end ▲▲▲
+
                     updateSettingsPreview();
                     document.getElementById('chat-settings-modal').classList.add('visible');
                 });
@@ -23207,10 +23593,220 @@ ${bulletinsContext}
                 function renderGroupMemberSettings(members) { const container = document.getElementById('group-members-settings'); container.innerHTML = ''; members.forEach(member => { const div = document.createElement('div'); div.className = 'member-editor'; div.dataset.memberId = member.id; div.innerHTML = `<img src="${member.avatar}" alt="${member.name}"><div class="member-name">${member.name}</div>`; div.addEventListener('click', () => openMemberEditor(member.id)); container.appendChild(div); }); }
                 function openMemberEditor(memberId) { editingMemberId = memberId; const chat = state.chats[state.activeChatId]; const member = chat.members.find(m => m.id === memberId); document.getElementById('member-name-input').value = member.name; document.getElementById('member-persona-input').value = member.persona; document.getElementById('member-avatar-preview').src = member.avatar; document.getElementById('member-settings-modal').classList.add('visible'); }
 
+                // ▼▼▼ Summary Info Update Function ▼▼▼
+                function updateSummaryInfo(chat) {
+                    // Update total message count in title
+                    const totalMessages = chat.history ? chat.history.length : 0;
+                    document.getElementById('summary-section-title').textContent = `长期记忆生成 (${totalMessages.toLocaleString()} 条)`;
+                }
+                // ▲▲▲ Summary Info Function End ▲▲▲
+
                 document.getElementById('cancel-member-settings-btn').addEventListener('click', () => { document.getElementById('member-settings-modal').classList.remove('visible'); editingMemberId = null; });
                 document.getElementById('save-member-settings-btn').addEventListener('click', () => { if (!editingMemberId) return; const chat = state.chats[state.activeChatId]; const member = chat.members.find(m => m.id === editingMemberId); member.name = document.getElementById('member-name-input').value; member.persona = document.getElementById('member-persona-input').value; member.avatar = document.getElementById('member-avatar-preview').src; renderGroupMemberSettings(chat.members); document.getElementById('member-settings-modal').classList.remove('visible'); });
                 document.getElementById('reset-theme-btn').addEventListener('click', () => { document.getElementById('theme-default').checked = true; });
                 document.getElementById('cancel-chat-settings-btn').addEventListener('click', () => { chatSettingsModal.classList.remove('visible'); });
+
+                // ▼▼▼ Summary Button Click Handler ▼▼▼
+                document.getElementById('update-summary-btn').addEventListener('click', async () => {
+                    if (!state.activeChatId) return;
+                    const chat = state.chats[state.activeChatId];
+                    
+                    // Check if there are messages to summarize
+                    if (!chat.history || chat.history.length === 0) {
+                        alert('❌ 没有消息可以总结');
+                        return;
+                    }
+                    
+                    // Get user-specified message count
+                    const messageCountInput = document.getElementById('summary-message-count');
+                    let messageCount = parseInt(messageCountInput.value);
+                    
+                    // Validate input
+                    if (isNaN(messageCount) || messageCount < 100) {
+                        alert('❌ 请输入至少100条消息');
+                        return;
+                    }
+                    
+                    if (messageCount > chat.history.length) {
+                        messageCount = chat.history.length;
+                        messageCountInput.value = messageCount;
+                    }
+                    
+                    // Get or create the auto-summary world book first
+                    const autoBook = await getOrCreateAutoSummaryWorldBook(state.activeChatId);
+                    if (!autoBook) {
+                        alert('❌ 创建世界书失败');
+                        return;
+                    }
+                    
+                    // Disable button and show loading state
+                    const btn = document.getElementById('update-summary-btn');
+                    const originalText = btn.textContent;
+                    btn.disabled = true;
+                    btn.textContent = '⏳ AI正在生成长期记忆...';
+                    btn.style.opacity = '0.6';
+                    
+                    // Set global flags for summary generation
+                    isGeneratingSummary = true;
+                    generatingSummaryBookId = autoBook.id;
+                    
+                    // Show loading state on world book (don't let this break the flow)
+                    try {
+                        setWorldBookLoadingState(autoBook.id, true);
+                    } catch (e) {
+                        // Silently fail - loading state is optional
+                    }
+                    
+                    try {
+                        console.log('🚀 Starting summary generation...');
+                        console.log(`Summarizing last ${messageCount} messages`);
+                        
+                        // Generate summary with AI (pass message count)
+                        const newSummary = await generateChatSummary(state.activeChatId, messageCount);
+                        
+                        // Update world book with new summary
+                        const success = await updateAutoSummaryWorldBook(state.activeChatId, newSummary);
+                        
+                        if (success) {
+                            // Refresh world book list if it's open
+                            if (window.renderWorldBookScreenProxy) {
+                                window.renderWorldBookScreenProxy();
+                            }
+                            
+                            console.log('✅ Summary generation complete!');
+                            console.log(`Summary length: ${newSummary.length} characters`);
+                            
+                            alert(`✅ 长期记忆生成成功！\n\n已更新世界书: [长期记忆] ${chat.name}\n\n总结了最近 ${messageCount} 条消息\n记忆长度: ${newSummary.length} 字符\n\n你可以在世界书列表中查看完整内容`);
+                        } else {
+                            alert('❌ 保存摘要失败');
+                        }
+                    } catch (error) {
+                        console.error('❌ Summary generation error:', error);
+                        alert(`❌ 生成长期记忆失败\n\n错误信息: ${error.message}\n\n请检查:\n1. API配置是否正确\n2. 网络连接是否正常\n3. API额度是否充足`);
+                    } finally {
+                        // Clear global flags
+                        isGeneratingSummary = false;
+                        generatingSummaryBookId = null;
+                        
+                        // Remove loading state from world book (don't let this break the flow)
+                        try {
+                            setWorldBookLoadingState(autoBook.id, false);
+                        } catch (e) {
+                            // Silently fail - loading state is optional
+                        }
+                        
+                        // Re-enable button
+                        btn.disabled = false;
+                        btn.textContent = originalText;
+                        btn.style.opacity = '1';
+                    }
+                });
+                // ▲▲▲ Summary Button Handler End ▲▲▲
+
+                // ▼▼▼ Summary Info Update Function ▼▼▼
+                function updateSummaryInfo(chat) {
+                    // Update total message count in title
+                    const totalMessages = chat.history ? chat.history.length : 0;
+                    document.getElementById('summary-section-title').textContent = `长期记忆生成 (${totalMessages.toLocaleString()} 条)`;
+                }
+                // ▲▲▲ Summary Info Function End ▲▲▲
+
+                // ▼▼▼ Summary Button Click Handler ▼▼▼
+                document.getElementById('update-summary-btn').addEventListener('click', async () => {
+                    if (!state.activeChatId) return;
+                    const chat = state.chats[state.activeChatId];
+                    
+                    // Check if there are messages to summarize
+                    if (!chat.history || chat.history.length === 0) {
+                        alert('❌ 没有消息可以总结');
+                        return;
+                    }
+                    
+                    // Get user-specified message count
+                    const messageCountInput = document.getElementById('summary-message-count');
+                    let messageCount = parseInt(messageCountInput.value);
+                    
+                    // Validate input
+                    if (isNaN(messageCount) || messageCount < 100) {
+                        alert('❌ 请输入至少100条消息');
+                        return;
+                    }
+                    
+                    if (messageCount > chat.history.length) {
+                        messageCount = chat.history.length;
+                        messageCountInput.value = messageCount;
+                    }
+                    
+                    // Get or create the auto-summary world book first
+                    const autoBook = await getOrCreateAutoSummaryWorldBook(state.activeChatId);
+                    if (!autoBook) {
+                        alert('❌ 创建世界书失败');
+                        return;
+                    }
+                    
+                    // Disable button and show loading state
+                    const btn = document.getElementById('update-summary-btn');
+                    const originalText = btn.textContent;
+                    btn.disabled = true;
+                    btn.textContent = '⏳ AI正在生成长期记忆...';
+                    btn.style.opacity = '0.6';
+                    
+                    // Set global flags for summary generation
+                    isGeneratingSummary = true;
+                    generatingSummaryBookId = autoBook.id;
+                    
+                    // Show loading state on world book (don't let this break the flow)
+                    try {
+                        setWorldBookLoadingState(autoBook.id, true);
+                    } catch (e) {
+                        // Silently fail - loading state is optional
+                    }
+                    
+                    try {
+                        console.log('🚀 Starting summary generation...');
+                        console.log(`Summarizing last ${messageCount} messages`);
+                        
+                        // Generate summary with AI (pass message count)
+                        const newSummary = await generateChatSummary(state.activeChatId, messageCount);
+                        
+                        // Update world book with new summary
+                        const success = await updateAutoSummaryWorldBook(state.activeChatId, newSummary);
+                        
+                        if (success) {
+                            // Refresh world book list if it's open
+                            if (window.renderWorldBookScreenProxy) {
+                                window.renderWorldBookScreenProxy();
+                            }
+                            
+                            console.log('✅ Summary generation complete!');
+                            console.log(`Summary length: ${newSummary.length} characters`);
+                            
+                            alert(`✅ 长期记忆生成成功！\n\n已更新世界书: [长期记忆] ${chat.name}\n\n总结了最近 ${messageCount} 条消息\n记忆长度: ${newSummary.length} 字符\n\n你可以在世界书列表中查看完整内容`);
+                        } else {
+                            alert('❌ 保存摘要失败');
+                        }
+                    } catch (error) {
+                        console.error('❌ Summary generation error:', error);
+                        alert(`❌ 生成长期记忆失败\n\n错误信息: ${error.message}\n\n请检查:\n1. API配置是否正确\n2. 网络连接是否正常\n3. API额度是否充足`);
+                    } finally {
+                        // Clear global flags
+                        isGeneratingSummary = false;
+                        generatingSummaryBookId = null;
+                        
+                        // Remove loading state from world book (don't let this break the flow)
+                        try {
+                            setWorldBookLoadingState(autoBook.id, false);
+                        } catch (e) {
+                            // Silently fail - loading state is optional
+                        }
+                        
+                        // Re-enable button
+                        btn.disabled = false;
+                        btn.textContent = originalText;
+                        btn.style.opacity = '1';
+                    }
+                });
+                // ▲▲▲ Summary Button Handler End ▲▲▲
 
                 document.getElementById('save-chat-settings-btn').addEventListener('click', async () => {
                     if (!state.activeChatId) return;
