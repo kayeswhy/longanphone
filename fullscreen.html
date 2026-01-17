@@ -8826,26 +8826,6 @@
                     <input type="file" id="bg-input" accept="image/*" style="display: none;">
                 </div>
                 
-                <!-- ▼▼▼ 长期记忆生成 ▼▼▼ -->
-                <hr style="margin: 25px 0; border: none; border-top: 1px solid #eee;">
-                <div class="form-group" id="chat-summary-section">
-                    <label id="summary-section-title">长期记忆生成 (0 条)</label>
-                    <div style="margin-bottom: 12px;">
-                        <label for="summary-message-count" style="font-size: 13px; color: #666; display: block; margin-bottom: 6px;">要整理最近多少条消息？</label>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <input type="number" id="summary-message-count" min="100" step="100" value="1000" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
-                            <span style="color: #666; font-size: 14px;">条</span>
-                        </div>
-                    </div>
-                    <button type="button" id="update-summary-btn" class="form-button" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
-                        🧠 生成长期记忆
-                    </button>
-                    <p style="font-size: 11px; color: #999; margin-top: 8px; line-height: 1.4;">
-                        记忆会自动保存到世界书，帮助AI记住重要的对话内容和情感
-                    </p>
-                </div>
-                <!-- ▲▲▲ 长期记忆生成结束 ▲▲▲ -->
-                
                 <hr style="margin: 25px 0; border: none; border-top: 1px solid #eee;">
                 <button class="form-button form-button-secondary" id="block-chat-btn"
                     style="background-color: #ff3b30; color: white; border-color: #ff3b30;">拉黑对方</button>
@@ -23710,103 +23690,6 @@ ${bulletinsContext}
                     document.getElementById('summary-section-title').textContent = `长期记忆生成 (${totalMessages.toLocaleString()} 条)`;
                 }
                 // ▲▲▲ Summary Info Function End ▲▲▲
-
-                // ▼▼▼ Summary Button Click Handler ▼▼▼
-                document.getElementById('update-summary-btn').addEventListener('click', async () => {
-                    if (!state.activeChatId) return;
-                    const chat = state.chats[state.activeChatId];
-                    
-                    // Check if there are messages to summarize
-                    if (!chat.history || chat.history.length === 0) {
-                        alert('❌ 没有消息可以总结');
-                        return;
-                    }
-                    
-                    // Get user-specified message count
-                    const messageCountInput = document.getElementById('summary-message-count');
-                    let messageCount = parseInt(messageCountInput.value);
-                    
-                    // Validate input
-                    if (isNaN(messageCount) || messageCount < 100) {
-                        alert('❌ 请输入至少100条消息');
-                        return;
-                    }
-                    
-                    if (messageCount > chat.history.length) {
-                        messageCount = chat.history.length;
-                        messageCountInput.value = messageCount;
-                    }
-                    
-                    // Get or create the auto-summary world book first
-                    const autoBook = await getOrCreateAutoSummaryWorldBook(state.activeChatId);
-                    if (!autoBook) {
-                        alert('❌ 创建世界书失败');
-                        return;
-                    }
-                    
-                    // Disable button and show loading state
-                    const btn = document.getElementById('update-summary-btn');
-                    const originalText = btn.textContent;
-                    btn.disabled = true;
-                    btn.textContent = '⏳ AI正在生成长期记忆...';
-                    btn.style.opacity = '0.6';
-                    
-                    // Set global flags for summary generation
-                    isGeneratingSummary = true;
-                    generatingSummaryBookId = autoBook.id;
-                    
-                    // Show loading state on world book (don't let this break the flow)
-                    try {
-                        setWorldBookLoadingState(autoBook.id, true);
-                    } catch (e) {
-                        // Silently fail - loading state is optional
-                    }
-                    
-                    try {
-                        console.log('🚀 Starting summary generation...');
-                        console.log(`Summarizing last ${messageCount} messages`);
-                        
-                        // Generate summary with AI (pass message count)
-                        const newSummary = await generateChatSummary(state.activeChatId, messageCount);
-                        
-                        // Update world book with new summary
-                        const success = await updateAutoSummaryWorldBook(state.activeChatId, newSummary);
-                        
-                        if (success) {
-                            // Refresh world book list if it's open
-                            if (window.renderWorldBookScreenProxy) {
-                                window.renderWorldBookScreenProxy();
-                            }
-                            
-                            console.log('✅ Summary generation complete!');
-                            console.log(`Summary length: ${newSummary.length} characters`);
-                            
-                            alert(`✅ 长期记忆生成成功！\n\n已更新世界书: [长期记忆] ${chat.name}\n\n总结了最近 ${messageCount} 条消息\n记忆长度: ${newSummary.length} 字符\n\n你可以在世界书列表中查看完整内容`);
-                        } else {
-                            alert('❌ 保存摘要失败');
-                        }
-                    } catch (error) {
-                        console.error('❌ Summary generation error:', error);
-                        alert(`❌ 生成长期记忆失败\n\n错误信息: ${error.message}\n\n请检查:\n1. API配置是否正确\n2. 网络连接是否正常\n3. API额度是否充足`);
-                    } finally {
-                        // Clear global flags
-                        isGeneratingSummary = false;
-                        generatingSummaryBookId = null;
-                        
-                        // Remove loading state from world book (don't let this break the flow)
-                        try {
-                            setWorldBookLoadingState(autoBook.id, false);
-                        } catch (e) {
-                            // Silently fail - loading state is optional
-                        }
-                        
-                        // Re-enable button
-                        btn.disabled = false;
-                        btn.textContent = originalText;
-                        btn.style.opacity = '1';
-                    }
-                });
-                // ▲▲▲ Summary Button Handler End ▲▲▲
 
                 document.getElementById('save-chat-settings-btn').addEventListener('click', async () => {
                     if (!state.activeChatId) return;
