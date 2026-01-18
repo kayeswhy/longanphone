@@ -23208,26 +23208,29 @@ ${bulletinsContext}
                     const chat = state.chats[state.activeChatId];
                     if (!chat || !chat.history || chat.history.length === 0) return;
                     
-                    // Find recent AI messages from the end of chat history
+                    // Find recent AI messages from the end backwards
                     const recentAiMessages = [];
                     for (let i = chat.history.length - 1; i >= 0; i--) {
-                        const msg = chat.history[i];
-                        if (msg.role === 'assistant') {
-                            recentAiMessages.unshift(msg);
-                        } else {
-                            break; // Stop when we hit a non-AI message
+                        const message = chat.history[i];
+                        if (message.role === 'user') break; // Stop at user message
+                        if (message.role === 'assistant') {
+                            recentAiMessages.unshift(message);
                         }
                     }
                     
-                    if (recentAiMessages.length === 0) return;
+                    if (recentAiMessages.length === 0) {
+                        await showCustomAlert('提示', '没有找到可以重新生成的AI回复');
+                        return;
+                    }
                     
-                    // Remove the recent AI messages
-                    chat.history = chat.history.slice(0, chat.history.length - recentAiMessages.length);
+                    // Remove AI messages
+                    chat.history = chat.history.filter(msg => 
+                        !recentAiMessages.some(aiMsg => aiMsg.timestamp === msg.timestamp)
+                    );
                     
-                    // Save to database and re-render
+                    // Save and re-render
                     await db.chats.put(chat);
-                    renderChatInterface();
-                    renderChatList();
+                    renderChatInterface(state.activeChatId);
                     
                     // Trigger new AI response
                     triggerAiResponse();
