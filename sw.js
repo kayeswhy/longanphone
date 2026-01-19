@@ -1,34 +1,27 @@
-// EPhone PWA Service Worker
-const CACHE_NAME = 'ephone-pwa-v1.0.0';
-const OFFLINE_URL = './fullscreen.html';
+// Simple PWA Service Worker
+const CACHE_NAME = 'ephone-v1';
 
-// Files to cache for offline functionality
-const CACHE_FILES = [
-  './fullscreen.html',
-  './js/browser-compatibility.js',
-  './manifest.json',
-  // Add other essential files as needed
-];
-
-// Install event - cache essential files
 self.addEventListener('install', (event) => {
-  console.log('🔧 Service Worker: Installing...');
-  
+  console.log('SW: Installing');
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('🔧 Service Worker: Caching essential files');
-        return cache.addAll(CACHE_FILES);
-      })
-      .then(() => {
-        console.log('🔧 Service Worker: Installation complete');
-        return self.skipWaiting();
-      })
-      .catch((error) => {
-        console.error('🔧 Service Worker: Installation failed', error);
-      })
+    caches.open(CACHE_NAME).then(() => {
+      console.log('SW: Cache opened');
+      return self.skipWaiting();
+    })
   );
 });
+
+self.addEventListener('activate', (event) => {
+  console.log('SW: Activating');
+  event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('fetch', (event) => {
+  // Just pass through all requests
+  event.respondWith(fetch(event.request));
+});
+
+console.log('SW: Loaded');
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {

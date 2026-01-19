@@ -26210,38 +26210,68 @@ ${bulletinsContext}
     <script>
         console.log('📱 Initializing PWA functionality...');
         
+        // Create PWA status indicator
+        function createPWAStatus() {
+            const status = document.createElement('div');
+            status.id = 'pwa-status';
+            status.style.cssText = `
+                position: fixed;
+                top: 10px;
+                left: 10px;
+                background: rgba(0,0,0,0.8);
+                color: white;
+                padding: 10px;
+                border-radius: 5px;
+                font-size: 12px;
+                z-index: 9999;
+                max-width: 200px;
+                font-family: monospace;
+            `;
+            status.innerHTML = 'PWA Status: Loading...';
+            document.body.appendChild(status);
+            return status;
+        }
+        
         // PWA Installation
         let deferredPrompt;
         let installButton;
+        let statusDiv;
+        
+        // Create status indicator when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            statusDiv = createPWAStatus();
+            updatePWAStatus('DOM loaded');
+        });
+        
+        function updatePWAStatus(message) {
+            if (statusDiv) {
+                const now = new Date().toLocaleTimeString();
+                statusDiv.innerHTML += `<br>${now}: ${message}`;
+            }
+            console.log('PWA Status:', message);
+        }
         
         // Service Worker Registration
         if ('serviceWorker' in navigator) {
+            updatePWAStatus('SW supported');
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
                     .then((registration) => {
+                        updatePWAStatus('SW registered');
                         console.log('📱 PWA: Service Worker registered successfully', registration.scope);
-                        
-                        // Check for updates
-                        registration.addEventListener('updatefound', () => {
-                            const newWorker = registration.installing;
-                            newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    // New content is available, prompt user to refresh
-                                    if (confirm('新版本可用！点击确定刷新应用。')) {
-                                        window.location.reload();
-                                    }
-                                }
-                            });
-                        });
                     })
                     .catch((error) => {
+                        updatePWAStatus('SW failed: ' + error.message);
                         console.error('📱 PWA: Service Worker registration failed', error);
                     });
             });
+        } else {
+            updatePWAStatus('SW not supported');
         }
         
         // PWA Install Prompt
         window.addEventListener('beforeinstallprompt', (e) => {
+            updatePWAStatus('Install prompt available!');
             console.log('📱 PWA: Install prompt available');
             
             // Prevent the mini-infobar from appearing on mobile
@@ -26264,10 +26294,10 @@ ${bulletinsContext}
         // Create PWA install button
         function createInstallButton() {
             installButton = document.createElement('button');
-            installButton.innerHTML = '📱 安装应用';
+            installButton.innerHTML = '📱 Install App';
             installButton.style.cssText = `
                 position: fixed;
-                top: 20px;
+                top: 60px;
                 right: 20px;
                 z-index: 10000;
                 background: #007AFF;
@@ -26284,18 +26314,14 @@ ${bulletinsContext}
             
             installButton.addEventListener('click', async () => {
                 if (deferredPrompt) {
+                    updatePWAStatus('Showing install prompt');
                     // Show the install prompt
                     deferredPrompt.prompt();
                     
                     // Wait for the user to respond to the prompt
                     const { outcome } = await deferredPrompt.userChoice;
+                    updatePWAStatus('User choice: ' + outcome);
                     console.log('📱 PWA: User choice:', outcome);
-                    
-                    if (outcome === 'accepted') {
-                        console.log('📱 PWA: User accepted the install prompt');
-                    } else {
-                        console.log('📱 PWA: User dismissed the install prompt');
-                    }
                     
                     // Clear the deferredPrompt
                     deferredPrompt = null;
@@ -26304,98 +26330,28 @@ ${bulletinsContext}
             });
             
             document.body.appendChild(installButton);
+            updatePWAStatus('Install button created');
         }
         
         // Handle successful installation
         window.addEventListener('appinstalled', (evt) => {
+            updatePWAStatus('App installed successfully!');
             console.log('📱 PWA: App was installed successfully');
             
             // Hide install button
             if (installButton) {
                 installButton.style.display = 'none';
             }
-            
-            // Show success message
-            if (typeof showNotification === 'function') {
-                showNotification('应用安装成功！', '现在可以从主屏幕启动EPhone了。');
-            }
         });
         
-        // Detect if running as PWA
-        function isPWA() {
-            return window.matchMedia && window.matchMedia('(display-mode: fullscreen)').matches ||
-                   window.navigator.standalone === true ||
-                   document.referrer.includes('android-app://');
-        }
-        
-        // PWA-specific initialization
-        if (isPWA()) {
-            console.log('📱 PWA: Running as installed PWA');
-            
-            // Add PWA-specific styles
-            document.documentElement.classList.add('pwa-mode');
-            
-            // Hide browser UI elements that don't make sense in PWA
-            const style = document.createElement('style');
-            style.textContent = `
-                .pwa-mode .browser-only {
-                    display: none !important;
-                }
-                .pwa-mode body {
-                    padding-top: env(safe-area-inset-top);
-                    padding-bottom: env(safe-area-inset-bottom);
-                }
-            `;
-            document.head.appendChild(style);
-        }
-        
-        // Handle PWA navigation
-        window.addEventListener('popstate', (event) => {
-            if (isPWA()) {
-                // Handle back button in PWA mode
-                console.log('📱 PWA: Navigation event', event.state);
-            }
-        });
-        
-        // Prevent zoom on double tap (PWA behavior)
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', (event) => {
-            const now = (new Date()).getTime();
-            if (now - lastTouchEnd <= 300) {
-                event.preventDefault();
-            }
-            lastTouchEnd = now;
-        }, false);
-        
-        // Handle PWA shortcuts
-        if (window.location.hash) {
-            const hash = window.location.hash.substring(1);
-            console.log('📱 PWA: Launched with shortcut:', hash);
-            
-            // Handle shortcuts after app loads
-            document.addEventListener('DOMContentLoaded', () => {
-                setTimeout(() => {
-                    switch (hash) {
-                        case 'chat':
-                            if (typeof showScreen === 'function') {
-                                showScreen('chat-list-screen');
-                            }
-                            break;
-                        case 'music':
-                            // Open music player
-                            if (typeof showMusicPlayer === 'function') {
-                                showMusicPlayer();
-                            }
-                            break;
-                        case 'calendar':
-                            if (typeof showScreen === 'function') {
-                                showScreen('calendar-screen');
-                            }
-                            break;
-                    }
-                }, 1000);
-            });
-        }
+        // Check PWA criteria after a delay
+        setTimeout(() => {
+            const criteria = [];
+            criteria.push('HTTPS: ' + (location.protocol === 'https:' ? '✅' : '❌'));
+            criteria.push('SW: ' + ('serviceWorker' in navigator ? '✅' : '❌'));
+            criteria.push('Manifest: ' + (document.querySelector('link[rel="manifest"]') ? '✅' : '❌'));
+            updatePWAStatus('Criteria check:<br>' + criteria.join('<br>'));
+        }, 2000);
         
         console.log('📱 PWA: Initialization complete');
     </script>

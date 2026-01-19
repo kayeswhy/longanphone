@@ -1,96 +1,20 @@
 {
-  "name": "EPhone - AI Chat Assistant",
+  "name": "EPhone",
   "short_name": "EPhone",
-  "description": "Advanced AI chat application with music, social features, and more",
   "start_url": "./fullscreen.html",
   "display": "standalone",
-  "orientation": "portrait",
-  "theme_color": "#007AFF",
   "background_color": "#000000",
-  "scope": "./",
-  "lang": "zh-CN",
-  "categories": ["social", "entertainment", "productivity"],
+  "theme_color": "#007AFF",
   "icons": [
-    {
-      "src": "res/icon/android/ldpi.png",
-      "sizes": "36x36",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "res/icon/android/mdpi.png",
-      "sizes": "48x48",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "res/icon/android/hdpi.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "res/icon/android/xhdpi.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "res/icon/android/xxhdpi.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
-    },
     {
       "src": "res/icon/android/xxxhdpi.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     },
     {
       "src": "res/icon/android/xxxhdpi.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     }
-  ],
-  "shortcuts": [
-    {
-      "name": "New Chat",
-      "short_name": "Chat",
-      "description": "Start a new AI conversation",
-      "url": "./fullscreen.html#chat",
-      "icons": [
-        {
-          "src": "res/icon/android/hdpi.png",
-          "sizes": "72x72"
-        }
-      ]
-    },
-    {
-      "name": "Music Player",
-      "short_name": "Music",
-      "description": "Open music player",
-      "url": "./fullscreen.html#music",
-      "icons": [
-        {
-          "src": "res/icon/android/hdpi.png",
-          "sizes": "72x72"
-        }
-      ]
-    },
-    {
-      "name": "Calendar",
-      "short_name": "Calendar",
-      "description": "View calendar and memories",
-      "url": "./fullscreen.html#calendar",
-      "icons": [
-        {
-          "src": "res/icon/android/hdpi.png",
-          "sizes": "72x72"
-        }
-      ]
-    }
-  ],
-  "prefer_related_applications": false
+  ]
 }
