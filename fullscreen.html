@@ -10137,6 +10137,12 @@
                     const settings = state.qzoneSettings;
                     document.getElementById('qzone-nickname').textContent = settings.nickname;
                     document.getElementById('qzone-banner-img').src = settings.banner;
+                    
+                    // Update status text - use saved status or keep current text if no status is saved
+                    const statusElement = document.getElementById('qzone-status');
+                    if (statusElement && settings.status) {
+                        statusElement.textContent = settings.status;
+                    }
 
                     // Handle avatar with border - keep original structure, just add/remove frame overlay
                     const avatarContainer = document.getElementById('qzone-avatar-container');
@@ -24071,7 +24077,31 @@ ${bulletinsContext}
                 document.querySelectorAll('#chat-list-bottom-nav .nav-item').forEach(item => { item.addEventListener('click', () => switchToChatListView(item.dataset.view)); });
                 document.getElementById('qzone-back-btn').addEventListener('click', () => showScreen('home-screen'));
                 document.getElementById('qzone-nickname').addEventListener('click', async () => { const newNickname = await showCustomPrompt("修改昵称", "请输入新的昵称", state.qzoneSettings.nickname); if (newNickname && newNickname.trim()) { state.qzoneSettings.nickname = newNickname.trim(); await saveQzoneSettings(); renderQzoneScreen(); } });
-                document.getElementById('qzone-status').addEventListener('click', async () => { const newStatus = await showCustomPrompt("修改个性签名", "请输入新的个性签名", state.qzoneSettings.status || "这个用户很懒，什么也没留下"); if (newStatus !== null && newStatus.trim()) { state.qzoneSettings.status = newStatus.trim(); await saveQzoneSettings(); renderQzoneScreen(); } });
+                document.getElementById('qzone-status').addEventListener('click', async () => {
+                    const currentStatus = document.getElementById('qzone-status').textContent;
+                    const newStatus = await showCustomPrompt('编辑个性签名', '输入新的个性签名', currentStatus);
+
+                    if (newStatus !== null && newStatus.trim() !== '') {
+                        // Update the display
+                        document.getElementById('qzone-status').textContent = newStatus.trim();
+
+                        // Save to settings
+                        if (!state.qzoneSettings) {
+                            state.qzoneSettings = {};
+                        }
+                        state.qzoneSettings.status = newStatus.trim();
+
+                        // Save to database
+                        try {
+                            await db.qzoneSettings.put({
+                                id: 'main',
+                                ...state.qzoneSettings
+                            });
+                        } catch (error) {
+                            console.error('Failed to save QZone status:', error);
+                        }
+                    }
+                });
                 document.getElementById('qzone-avatar-container').addEventListener('click', () => {
                     // Load current avatar
                     document.getElementById('qzone-avatar-preview').src = state.qzoneSettings.avatar;
@@ -26204,6 +26234,32 @@ ${bulletinsContext}
                 window.toggleCharmVisibility(isVisible);
             } else {
                 console.error('DEBUG - toggleCharmVisibility function not found');
+            }
+        });
+
+        // Load QZone settings on app start
+        document.addEventListener('DOMContentLoaded', async function () {
+            try {
+                const qzoneSettings = await db.qzoneSettings.get('main');
+                if (qzoneSettings) {
+                    // Load nickname
+                    if (qzoneSettings.nickname) {
+                        const nicknameElement = document.getElementById('qzone-nickname');
+                        if (nicknameElement) {
+                            nicknameElement.textContent = qzoneSettings.nickname;
+                        }
+                    }
+
+                    // Load status
+                    if (qzoneSettings.status) {
+                        const statusElement = document.getElementById('qzone-status');
+                        if (statusElement) {
+                            statusElement.textContent = qzoneSettings.status;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load QZone settings:', error);
             }
         });
     </script>
