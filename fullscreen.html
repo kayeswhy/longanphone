@@ -26208,150 +26208,70 @@ ${bulletinsContext}
 
     <!-- PWA Installation and Service Worker -->
     <script>
-        console.log('📱 Initializing PWA functionality...');
+        console.log('📱 PWA: Starting initialization...');
         
-        // Create PWA status indicator
-        function createPWAStatus() {
-            const status = document.createElement('div');
-            status.id = 'pwa-status';
-            status.style.cssText = `
-                position: fixed;
-                top: 10px;
-                left: 10px;
-                background: rgba(0,0,0,0.8);
-                color: white;
-                padding: 10px;
-                border-radius: 5px;
-                font-size: 12px;
-                z-index: 9999;
-                max-width: 200px;
-                font-family: monospace;
-            `;
-            status.innerHTML = 'PWA Status: Loading...';
-            document.body.appendChild(status);
-            return status;
-        }
-        
-        // PWA Installation
-        let deferredPrompt;
-        let installButton;
-        let statusDiv;
-        
-        // Create status indicator when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            statusDiv = createPWAStatus();
-            updatePWAStatus('DOM loaded');
-        });
-        
-        function updatePWAStatus(message) {
-            if (statusDiv) {
-                const now = new Date().toLocaleTimeString();
-                statusDiv.innerHTML += `<br>${now}: ${message}`;
+        // Simple PWA status for debugging
+        function logPWAStatus(message) {
+            console.log('📱 PWA Status:', message);
+            // Also show on page for mobile debugging
+            if (!window.pwaStatusDiv) {
+                window.pwaStatusDiv = document.createElement('div');
+                window.pwaStatusDiv.style.cssText = `
+                    position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.8);
+                    color: white; padding: 8px; border-radius: 4px; font-size: 11px;
+                    z-index: 9999; max-width: 250px; font-family: monospace;
+                `;
+                document.body.appendChild(window.pwaStatusDiv);
             }
-            console.log('PWA Status:', message);
+            const time = new Date().toLocaleTimeString();
+            window.pwaStatusDiv.innerHTML += `<br>${time}: ${message}`;
         }
         
-        // Service Worker Registration
+        // Service Worker Registration (required for PWA)
         if ('serviceWorker' in navigator) {
-            updatePWAStatus('SW supported');
+            logPWAStatus('Service Worker supported');
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
                     .then((registration) => {
-                        updatePWAStatus('SW registered');
-                        console.log('📱 PWA: Service Worker registered successfully', registration.scope);
+                        logPWAStatus('Service Worker registered successfully');
+                        console.log('📱 PWA: SW registered', registration.scope);
                     })
                     .catch((error) => {
-                        updatePWAStatus('SW failed: ' + error.message);
-                        console.error('📱 PWA: Service Worker registration failed', error);
+                        logPWAStatus('Service Worker registration failed: ' + error.message);
+                        console.error('📱 PWA: SW registration failed', error);
                     });
             });
         } else {
-            updatePWAStatus('SW not supported');
+            logPWAStatus('Service Worker not supported');
         }
         
-        // PWA Install Prompt
-        window.addEventListener('beforeinstallprompt', (e) => {
-            updatePWAStatus('Install prompt available!');
-            console.log('📱 PWA: Install prompt available');
-            
-            // Prevent the mini-infobar from appearing on mobile
-            e.preventDefault();
-            
-            // Stash the event so it can be triggered later
-            deferredPrompt = e;
-            
-            // Create install button if it doesn't exist
-            if (!installButton) {
-                createInstallButton();
-            }
-            
-            // Show install button
-            if (installButton) {
-                installButton.style.display = 'block';
-            }
-        });
-        
-        // Create PWA install button
-        function createInstallButton() {
-            installButton = document.createElement('button');
-            installButton.innerHTML = '📱 Install App';
-            installButton.style.cssText = `
-                position: fixed;
-                top: 60px;
-                right: 20px;
-                z-index: 10000;
-                background: #007AFF;
-                color: white;
-                border: none;
-                border-radius: 20px;
-                padding: 10px 15px;
-                font-size: 14px;
-                cursor: pointer;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-                display: none;
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            `;
-            
-            installButton.addEventListener('click', async () => {
-                if (deferredPrompt) {
-                    updatePWAStatus('Showing install prompt');
-                    // Show the install prompt
-                    deferredPrompt.prompt();
-                    
-                    // Wait for the user to respond to the prompt
-                    const { outcome } = await deferredPrompt.userChoice;
-                    updatePWAStatus('User choice: ' + outcome);
-                    console.log('📱 PWA: User choice:', outcome);
-                    
-                    // Clear the deferredPrompt
-                    deferredPrompt = null;
-                    installButton.style.display = 'none';
-                }
-            });
-            
-            document.body.appendChild(installButton);
-            updatePWAStatus('Install button created');
-        }
-        
-        // Handle successful installation
-        window.addEventListener('appinstalled', (evt) => {
-            updatePWAStatus('App installed successfully!');
-            console.log('📱 PWA: App was installed successfully');
-            
-            // Hide install button
-            if (installButton) {
-                installButton.style.display = 'none';
-            }
-        });
-        
-        // Check PWA criteria after a delay
+        // Check PWA installability criteria
         setTimeout(() => {
             const criteria = [];
             criteria.push('HTTPS: ' + (location.protocol === 'https:' ? '✅' : '❌'));
-            criteria.push('SW: ' + ('serviceWorker' in navigator ? '✅' : '❌'));
+            criteria.push('Service Worker: ' + ('serviceWorker' in navigator ? '✅' : '❌'));
             criteria.push('Manifest: ' + (document.querySelector('link[rel="manifest"]') ? '✅' : '❌'));
-            updatePWAStatus('Criteria check:<br>' + criteria.join('<br>'));
-        }, 2000);
+            
+            logPWAStatus('PWA Criteria Check:');
+            criteria.forEach(c => logPWAStatus(c));
+            
+            // Check if all criteria are met
+            const allMet = criteria.every(c => c.includes('✅'));
+            logPWAStatus(allMet ? 'All PWA criteria met! Should be installable.' : 'Some PWA criteria missing.');
+            
+        }, 3000);
+        
+        // Optional: Listen for install prompt (for debugging)
+        window.addEventListener('beforeinstallprompt', (e) => {
+            logPWAStatus('Install prompt event fired - PWA is installable!');
+            console.log('📱 PWA: beforeinstallprompt event fired');
+        });
+        
+        // Optional: Listen for successful installation
+        window.addEventListener('appinstalled', (evt) => {
+            logPWAStatus('PWA installed successfully!');
+            console.log('📱 PWA: App installed');
+        });
         
         console.log('📱 PWA: Initialization complete');
     </script>
