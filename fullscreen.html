@@ -3559,8 +3559,6 @@
             color: #333;
             cursor: pointer;
             transition: opacity 0.2s;
-            margin-top: -8px;
-            /* Move status text 8px upwards */
         }
 
         /* Only move text left when borders are enabled */
@@ -24073,6 +24071,7 @@ ${bulletinsContext}
                 document.querySelectorAll('#chat-list-bottom-nav .nav-item').forEach(item => { item.addEventListener('click', () => switchToChatListView(item.dataset.view)); });
                 document.getElementById('qzone-back-btn').addEventListener('click', () => showScreen('home-screen'));
                 document.getElementById('qzone-nickname').addEventListener('click', async () => { const newNickname = await showCustomPrompt("修改昵称", "请输入新的昵称", state.qzoneSettings.nickname); if (newNickname && newNickname.trim()) { state.qzoneSettings.nickname = newNickname.trim(); await saveQzoneSettings(); renderQzoneScreen(); } });
+                document.getElementById('qzone-status').addEventListener('click', async () => { const newStatus = await showCustomPrompt("修改个性签名", "请输入新的个性签名", state.qzoneSettings.status || "这个用户很懒，什么也没留下"); if (newStatus !== null && newStatus.trim()) { state.qzoneSettings.status = newStatus.trim(); await saveQzoneSettings(); renderQzoneScreen(); } });
                 document.getElementById('qzone-avatar-container').addEventListener('click', () => {
                     // Load current avatar
                     document.getElementById('qzone-avatar-preview').src = state.qzoneSettings.avatar;
