@@ -26206,74 +26206,20 @@ ${bulletinsContext}
         });
     </script>
 
-    <!-- PWA Installation and Service Worker -->
+    <!-- PWA Service Worker Registration -->
     <script>
-        console.log('📱 PWA: Starting initialization...');
-        
-        // Simple PWA status for debugging
-        function logPWAStatus(message) {
-            console.log('📱 PWA Status:', message);
-            // Also show on page for mobile debugging
-            if (!window.pwaStatusDiv) {
-                window.pwaStatusDiv = document.createElement('div');
-                window.pwaStatusDiv.style.cssText = `
-                    position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.8);
-                    color: white; padding: 8px; border-radius: 4px; font-size: 11px;
-                    z-index: 9999; max-width: 250px; font-family: monospace;
-                `;
-                document.body.appendChild(window.pwaStatusDiv);
-            }
-            const time = new Date().toLocaleTimeString();
-            window.pwaStatusDiv.innerHTML += `<br>${time}: ${message}`;
-        }
-        
         // Service Worker Registration (required for PWA)
         if ('serviceWorker' in navigator) {
-            logPWAStatus('Service Worker supported');
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
                     .then((registration) => {
-                        logPWAStatus('Service Worker registered successfully');
-                        console.log('📱 PWA: SW registered', registration.scope);
+                        console.log('PWA: Service Worker registered successfully');
                     })
                     .catch((error) => {
-                        logPWAStatus('Service Worker registration failed: ' + error.message);
-                        console.error('📱 PWA: SW registration failed', error);
+                        console.error('PWA: Service Worker registration failed', error);
                     });
             });
-        } else {
-            logPWAStatus('Service Worker not supported');
         }
-        
-        // Check PWA installability criteria
-        setTimeout(() => {
-            const criteria = [];
-            criteria.push('HTTPS: ' + (location.protocol === 'https:' ? '✅' : '❌'));
-            criteria.push('Service Worker: ' + ('serviceWorker' in navigator ? '✅' : '❌'));
-            criteria.push('Manifest: ' + (document.querySelector('link[rel="manifest"]') ? '✅' : '❌'));
-            
-            logPWAStatus('PWA Criteria Check:');
-            criteria.forEach(c => logPWAStatus(c));
-            
-            // Check if all criteria are met
-            const allMet = criteria.every(c => c.includes('✅'));
-            logPWAStatus(allMet ? 'All PWA criteria met! Should be installable.' : 'Some PWA criteria missing.');
-            
-        }, 3000);
-        
-        // Optional: Listen for install prompt (for debugging)
-        window.addEventListener('beforeinstallprompt', (e) => {
-            logPWAStatus('Install prompt event fired - PWA is installable!');
-            console.log('📱 PWA: beforeinstallprompt event fired');
-        });
-        
-        // Optional: Listen for successful installation
-        window.addEventListener('appinstalled', (evt) => {
-            logPWAStatus('PWA installed successfully!');
-            console.log('📱 PWA: App installed');
-        });
-        
-        console.log('📱 PWA: Initialization complete');
     </script>
 </body>
 
