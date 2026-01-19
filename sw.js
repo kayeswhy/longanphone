@@ -1,5 +1,5 @@
 // Simple PWA Service Worker
-const CACHE_NAME = 'ephone-v1';
+const CACHE_NAME = 'ephone-v2';
 
 self.addEventListener('install', (event) => {
   console.log('SW: Installing');
