@@ -23997,17 +23997,30 @@ ${bulletinsContext}
                     if (confirmed) {
                         const chat = state.chats[state.activeChatId];
 
-                        // 1. 【核心加强】在删除前，检查被删除的消息中是否包含投票
+                        // 1. 【核心加强】在删除前，检查被删除的消息中是否包含投票和撤回消息
                         let deletedPollsInfo = [];
+                        let hiddenMessagesToDelete = [];
                         for (const timestamp of selectedMessages) {
                             const msg = chat.history.find(m => m.timestamp === timestamp);
                             if (msg && msg.type === 'poll') {
                                 deletedPollsInfo.push(`关于“${msg.question}”的投票(时间戳: ${msg.timestamp})`);
                             }
-                        }
+                            // 如果是撤回消息占位符，找到相关的隐藏系统消息
+                            if (msg && msg.type === 'recalled_message') {
+                                const relatedHiddenMessage = chat.history.find(m => 
+                                    m.isHidden && 
+                                    m.role === 'system' && 
+                                    m.timestamp > timestamp && 
+                                    m.content.includes('撤回了一条消息')
+                                );
+                                if (relatedHiddenMessage) {
+                                    hiddenMessagesToDelete.push(relatedHiddenMessage.timestamp);
+                                }
+                            }                        }
 
-                        // 2. 更新后端的历史记录
-                        chat.history = chat.history.filter(msg => !selectedMessages.has(msg.timestamp));
+                        // 2. 更新后端的历史记录 - 删除选中的消息和相关的隐藏消息
+                        const allTimestampsToDelete = new Set([...selectedMessages, ...hiddenMessagesToDelete]);
+                        chat.history = chat.history.filter(msg => !allTimestampsToDelete.has(msg.timestamp));
 
                         // 3. 【核心加强】构建更具体的“遗忘指令”
                         let forgetReason = "一些之前的消息已被用户删除。";
